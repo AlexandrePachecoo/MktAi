@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  nome       String
+  email      String   @unique
+  hash_pass  String
+  plano      String   @default("free")
+  created_at DateTime @default(now())
+
+  campanhas   Campanha[]
+  integracoes Integracao[]
+}
+
+model Campanha {
+  id           String   @id @default(uuid())
+  user_id      String
+  nome         String
+  descricao    String
+  publico_alvo String
+  orcamento    Float
+  plataforma   String
+  status       String   @default("ativa")
+  created_at   DateTime @default(now())
+
+  user      User       @relation(fields: [user_id], references: [id])
+  criativos Criativo[]
+  testes_ab TesteAB[]
+}
+
+model Criativo {
+  id          String   @id @default(uuid())
+  campanha_id String
+  url_imagem  String
+  tipo        String
+  created_at  DateTime @default(now())
+
+  campanha Campanha  @relation(fields: [campanha_id], references: [id])
+  testes_a TesteAB[] @relation("VarianteA")
+  testes_b TesteAB[] @relation("VarianteB")
+}
+
+model TesteAB {
+  id            String  @id @default(uuid())
+  campanha_id   String
+  criativo_id_a String
+  criativo_id_b String
+  resultado     String?
+  status        String  @default("ativo")
+
+  campanha   Campanha @relation(fields: [campanha_id], references: [id])
+  criativo_a Criativo @relation("VarianteA", fields: [criativo_id_a], references: [id])
+  criativo_b Criativo @relation("VarianteB", fields: [criativo_id_b], references: [id])
+}
+
+model Integracao {
+  id            String    @id @default(uuid())
+  user_id       String
+  plataforma    String
+  access_token  String
+  refresh_token String?
+  expires_at    DateTime?
+
+  user User @relation(fields: [user_id], references: [id])
+}
