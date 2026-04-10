@@ -183,3 +183,4 @@ Usuário → Dashboard → Meta/Google Ads (direto, sem passar pela fila)
 - ❌ Não extrair microserviços prematuramente
 - ❌ Não usar `pg` diretamente como ORM — usar Prisma
 - ❌ Não processar jobs de IA de forma síncrona no request do usuário
+- ❌ Não criar funções sem testes — toda função nova deve ter teste correspondente (unit ou integration)

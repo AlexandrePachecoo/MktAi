@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import authRoutes from './modules/auth/auth.routes';
 
 dotenv.config();
 
@@ -11,6 +12,8 @@ app.use(express.json());
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+app.use('/auth', authRoutes);
 
 if (require.main === module) {
   app.listen(PORT, () => {
