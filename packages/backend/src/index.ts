@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import authRoutes from './modules/auth/auth.routes';
 import integracoesRoutes from './modules/integracoes/integracoes.routes';
 import campanhasRoutes from './modules/campanhas/campanhas.routes';
+import criativosRoutes from './modules/criativos/criativos.routes';
 
 dotenv.config();
 
@@ -18,6 +19,8 @@ app.get('/health', (_req, res) => {
 app.use('/auth', authRoutes);
 app.use('/integracoes', integracoesRoutes);
 app.use('/campanhas', campanhasRoutes);
+app.use('/upload', criativosRoutes);
+app.use('/campanhas', criativosRoutes);
 
 if (require.main === module) {
   app.listen(PORT, () => {
