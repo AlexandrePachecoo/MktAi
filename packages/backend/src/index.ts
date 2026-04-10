@@ -6,6 +6,8 @@ import campanhasRoutes from './modules/campanhas/campanhas.routes';
 import criativosRoutes from './modules/criativos/criativos.routes';
 import testesAbRoutes from './modules/testes-ab/testes-ab.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
+import './queue/optimization.worker';
+import { iniciarScheduler } from './queue/optimization.scheduler';
 
 dotenv.config();
 
@@ -30,6 +32,7 @@ if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Backend running on port ${PORT}`);
   });
+  iniciarScheduler();
 }
 
 export default app;
