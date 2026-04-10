@@ -27,7 +27,7 @@ Plataforma com IA para gerenciar campanhas no Meta Ads e Google Ads. Gera estrat
 | Frontend | React |
 | Backend | Node.js + Express |
 | Testes | Jest |
-| Banco de dados | PostgreSQL (Neon) |
+| Banco de dados | PostgreSQL (Supabase) |
 | Migrations | node-pg-migrate |
 | ORM | Prisma |
 | IA | OpenAI (ChatGPT + DALL-E) |
