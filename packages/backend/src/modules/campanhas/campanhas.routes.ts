@@ -7,6 +7,7 @@ import {
   atualizarCampanha,
   deletarCampanha,
 } from './campanhas.service';
+import { gerarEstrategia } from './estrategia.service';
 
 const router = Router();
 
@@ -61,6 +62,23 @@ router.put('/:id', async (req: Request, res: Response): Promise<void> => {
       return;
     }
     res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+router.post('/:id/estrategia', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const estrategia = await gerarEstrategia(req.params.id, (req as AuthRequest).userId);
+    res.json(estrategia);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'NOT_FOUND') {
+      res.status(404).json({ error: 'Campanha não encontrada' });
+      return;
+    }
+    if (err instanceof Error && err.name === 'FORBIDDEN') {
+      res.status(403).json({ error: 'Acesso negado' });
+      return;
+    }
+    res.status(500).json({ error: 'Erro ao gerar estratégia' });
   }
 });
 

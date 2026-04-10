@@ -17,10 +17,12 @@ const campanha = {
   user_id: 'user-1',
   nome: 'Campanha Verão',
   descricao: 'Promoção verão',
+  objetivo: 'conversao',
   publico_alvo: '18-35',
   orcamento: 500,
   plataforma: 'meta',
   status: 'ativa',
+  estrategia: null,
   created_at: new Date(),
 };
 
