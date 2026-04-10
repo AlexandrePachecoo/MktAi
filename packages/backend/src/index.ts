@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import authRoutes from './modules/auth/auth.routes';
+import integracoesRoutes from './modules/integracoes/integracoes.routes';
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/auth', authRoutes);
+app.use('/integracoes', integracoesRoutes);
 
 if (require.main === module) {
   app.listen(PORT, () => {

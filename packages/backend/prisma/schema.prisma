@@ -69,4 +69,6 @@ model Integracao {
   expires_at    DateTime?
 
   user User @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, plataforma])
 }
