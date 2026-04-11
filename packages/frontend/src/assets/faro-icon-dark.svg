@@ -1,0 +1,25 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark background circle -->
+  <circle cx="60" cy="60" r="58" fill="#0f0d09"/>
+  <circle cx="60" cy="60" r="56" stroke="#2a2215" stroke-width="1.5"/>
+
+  <!-- Glow behind lighthouse -->
+  <ellipse cx="60" cy="50" rx="30" ry="22" fill="#e85d26" opacity="0.07"/>
+
+  <!-- Light rays -->
+  <line x1="60" y1="18" x2="60" y2="4"  stroke="#e85d26" stroke-width="3" stroke-linecap="round"/>
+  <line x1="88" y1="26" x2="97" y2="17" stroke="#e85d26" stroke-width="3" stroke-linecap="round" opacity="0.65"/>
+  <line x1="32" y1="26" x2="23" y2="17" stroke="#e85d26" stroke-width="3" stroke-linecap="round" opacity="0.65"/>
+  <line x1="102" y1="54" x2="116" y2="50" stroke="#e85d26" stroke-width="2.5" stroke-linecap="round" opacity="0.35"/>
+  <line x1="18"  y1="54" x2="4"   y2="50" stroke="#e85d26" stroke-width="2.5" stroke-linecap="round" opacity="0.35"/>
+
+  <!-- Lighthouse body -->
+  <rect x="38" y="90" width="44" height="7" rx="2.5" fill="#f0ead8"/>
+  <rect x="46" y="58" width="28" height="34" rx="2" fill="#f0ead8"/>
+  <rect x="42" y="40" width="36" height="20" rx="3.5" fill="#f0ead8"/>
+  <rect x="40" y="36" width="40" height="6" rx="2" fill="#f0ead8"/>
+  <!-- Light lens -->
+  <rect x="46" y="44" width="28" height="12" rx="2.5" fill="#e85d26" opacity="0.95"/>
+  <!-- Window -->
+  <rect x="54" y="68" width="12" height="14" rx="2" fill="#e85d26" opacity="0.2"/>
+</svg>
