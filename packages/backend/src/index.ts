@@ -1,5 +1,4 @@
 import express from 'express';
-import dotenv from 'dotenv';
 import authRoutes from './modules/auth/auth.routes';
 import integracoesRoutes from './modules/integracoes/integracoes.routes';
 import campanhasRoutes from './modules/campanhas/campanhas.routes';
@@ -8,8 +7,6 @@ import testesAbRoutes from './modules/testes-ab/testes-ab.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import './queue/optimization.worker';
 import { iniciarScheduler } from './queue/optimization.scheduler';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
