@@ -13,7 +13,23 @@ import { useDashboard, MetricasMeta, MetricasGoogle } from '@/hooks/useDashboard
 // ---------------------------------------------------------------------------
 // Mock de série temporal — substituído por dados reais quando API retornar
 // ---------------------------------------------------------------------------
-function gerarSerie(base: number, dias = 14) {
+function gerarSerieHoras(base: number) {
+  const agora = new Date();
+  const horaAtual = agora.getHours();
+  return Array.from({ length: horaAtual + 1 }, (_, i) => {
+    const ruido = () => 0.75 + Math.random() * 0.5;
+    return {
+      dia: `${String(i).padStart(2, '0')}h`,
+      impressoes: Math.round((base / 24) * ruido()),
+      cliques: Math.round((base / 24) * 0.04 * ruido()),
+      gasto: parseFloat(((base / 24) * 0.002 * ruido()).toFixed(2)),
+      ctr: parseFloat((4 * ruido()).toFixed(2)),
+      cpc: parseFloat((0.38 * ruido()).toFixed(2)),
+    };
+  });
+}
+
+function gerarSerie(base: number, dias = 7) {
   return Array.from({ length: dias }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (dias - 1 - i));
@@ -30,8 +46,6 @@ function gerarSerie(base: number, dias = 14) {
   });
 }
 
-const MOCK_META_SERIE = gerarSerie(12000);
-const MOCK_GOOGLE_SERIE = gerarSerie(8000);
 
 const MOCK_META: MetricasMeta = {
   plataforma: 'meta',
@@ -55,6 +69,14 @@ const MOCK_GOOGLE: MetricasGoogle = {
 
 type Metrica = 'impressoes' | 'cliques' | 'gasto' | 'ctr' | 'cpc';
 type Plataforma = 'meta' | 'google' | 'ambos';
+type Periodo = 1 | 7 | 30 | 90;
+
+const PERIODOS: { key: Periodo; label: string }[] = [
+  { key: 1,  label: 'Hoje' },
+  { key: 7,  label: '7 dias' },
+  { key: 30, label: '30 dias' },
+  { key: 90, label: '90 dias' },
+];
 
 const METRICAS: { key: Metrica; label: string; format: (v: number) => string }[] = [
   { key: 'impressoes', label: 'Impressões', format: (v) => v.toLocaleString('pt-BR') },
@@ -71,6 +93,7 @@ export function DashboardPage() {
 
   const [metricaAtiva, setMetricaAtiva] = useState<Metrica>('impressoes');
   const [plataformaAtiva, setPlataformaAtiva] = useState<Plataforma>('ambos');
+  const [periodo, setPeriodo] = useState<Periodo>(7);
 
   const metaData: MetricasMeta = (metricas?.meta && !('erro' in metricas.meta))
     ? (metricas.meta as MetricasMeta)
@@ -87,11 +110,14 @@ export function DashboardPage() {
 
   const metricaDef = METRICAS.find((m) => m.key === metricaAtiva)!;
 
-  // Série do gráfico conforme plataforma selecionada
-  const serieAtiva = MOCK_META_SERIE.map((m, i) => ({
+  // Série do gráfico conforme plataforma e período selecionados
+  const metaSerie   = React.useMemo(() => periodo === 1 ? gerarSerieHoras(12000) : gerarSerie(12000, periodo), [periodo]);
+  const googleSerie = React.useMemo(() => periodo === 1 ? gerarSerieHoras(8000)  : gerarSerie(8000,  periodo), [periodo]);
+
+  const serieAtiva = metaSerie.map((m, i) => ({
     dia: m.dia,
     Meta: plataformaAtiva !== 'google' ? m[metricaAtiva] : null,
-    Google: plataformaAtiva !== 'meta' ? MOCK_GOOGLE_SERIE[i][metricaAtiva] : null,
+    Google: plataformaAtiva !== 'meta' ? googleSerie[i][metricaAtiva] : null,
   }));
 
   return (
@@ -192,11 +218,28 @@ export function DashboardPage() {
 
           {/* Gráfico */}
           <Card>
-            <p style={styles.chartTitle}>
-              {metricaDef.label}
-              {plataformaAtiva !== 'ambos' && ` — ${plataformaAtiva === 'meta' ? 'Meta' : 'Google'}`}
-              {' '}(14 dias)
-            </p>
+            <div style={styles.chartHeader}>
+              <p style={styles.chartTitle}>
+                {metricaDef.label}
+                {plataformaAtiva !== 'ambos' && ` — ${plataformaAtiva === 'meta' ? 'Meta' : 'Google'}`}
+              </p>
+              <div style={styles.periodoTabs}>
+                {PERIODOS.map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => setPeriodo(p.key)}
+                    style={{
+                      ...styles.periodoTab,
+                      background: periodo === p.key ? 'var(--color-ember)' : 'transparent',
+                      color: periodo === p.key ? 'white' : 'var(--color-text-muted)',
+                      borderColor: periodo === p.key ? 'var(--color-ember)' : 'var(--color-border)',
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={serieAtiva} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
@@ -207,10 +250,10 @@ export function DashboardPage() {
                   formatter={(v) => [metricaDef.format(Number(v)), '']}
                 />
                 {(plataformaAtiva === 'meta' || plataformaAtiva === 'ambos') && (
-                  <Line type="monotone" dataKey="Meta" name="Meta" stroke="#e85d26" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Meta" name="Meta" stroke="#1877F2" strokeWidth={2} dot={false} />
                 )}
                 {(plataformaAtiva === 'google' || plataformaAtiva === 'ambos') && (
-                  <Line type="monotone" dataKey="Google" name="Google" stroke="#c94d1e" strokeWidth={2} dot={false} strokeDasharray="5 3" />
+                  <Line type="monotone" dataKey="Google" name="Google" stroke="#34A853" strokeWidth={2} dot={false} />
                 )}
                 {plataformaAtiva === 'ambos' && <Legend wrapperStyle={{ fontSize: '12px' }} />}
               </LineChart>
@@ -287,12 +330,32 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '12px',
     marginBottom: '20px',
   },
+  chartHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '20px',
+  },
   chartTitle: {
     fontFamily: 'var(--font-display)',
     fontSize: '14px',
     fontWeight: 800,
-    margin: '0 0 20px 0',
+    margin: 0,
     color: 'var(--color-text-primary)',
+  },
+  periodoTabs: {
+    display: 'flex',
+    gap: '6px',
+  },
+  periodoTab: {
+    padding: '5px 12px',
+    borderRadius: '6px',
+    border: '1px solid',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-ui)',
+    fontSize: '12px',
+    fontWeight: 500,
+    transition: 'all 0.15s ease',
   },
 };
 
