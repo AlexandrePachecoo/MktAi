@@ -19,6 +19,21 @@ async function processarCampanha(campanhaId: string) {
 
   if (!campanha || campanha.status !== 'ativa') return;
 
+  const estrategia = campanha.estrategia as {
+    resumo?: string;
+    distribuicao?: { plataforma: string; percentual: number; justificativa: string }[];
+    copies?: { titulo: string; texto: string }[];
+  } | null;
+
+  const contextoEstrategia = estrategia
+    ? `
+Estratégia de IA gerada para esta campanha:
+- Resumo: ${estrategia.resumo ?? '—'}
+- Distribuição: ${estrategia.distribuicao?.map((d) => `${d.plataforma} ${d.percentual}%`).join(', ') ?? '—'}
+- Copies ativos: ${estrategia.copies?.length ?? 0}
+`
+    : 'Nenhuma estratégia de IA foi gerada ainda para esta campanha.';
+
   // Pede para a IA analisar a campanha e sugerir ajustes
   const response = await getOpenAI().chat.completions.create({
     model: 'gpt-4o-mini',
@@ -37,6 +52,8 @@ Analise a campanha abaixo e sugira ajustes concisos:
 - Orçamento: R$ ${campanha.orcamento}
 - Plataforma: ${campanha.plataforma}
 - Criativos ativos: ${campanha.criativos.length}
+
+${contextoEstrategia}
 
 Responda apenas com JSON:
 {

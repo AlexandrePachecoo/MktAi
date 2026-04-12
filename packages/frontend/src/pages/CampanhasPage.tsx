@@ -112,9 +112,16 @@ function CampanhaRow({ campanha }: { campanha: Campanha }) {
           <Button
             variant="secondary"
             size="sm"
+            onClick={() => navigate(`/campanhas/${campanha.id}`)}
+          >
+            Ver detalhes
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigate(`/dashboard?campanha=${campanha.id}`)}
           >
-            Ver métricas
+            Métricas
           </Button>
         </div>
       </div>

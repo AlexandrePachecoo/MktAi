@@ -36,8 +36,14 @@ export async function gerarEstrategia(campanhaId: string, userId: string): Promi
   const prompt = `
 Você é um especialista em marketing digital e mídia paga.
 
-Com base nos dados da campanha abaixo, gere uma estratégia completa:
+Com base nos dados da campanha abaixo, gere uma estratégia completa.
 
+REGRAS OBRIGATÓRIAS:
+- Use APENAS as plataformas informadas no campo "Plataforma" (Meta e/ou Google). Nunca inclua LinkedIn, TikTok, Twitter, Pinterest ou qualquer outra plataforma não informada.
+- NÃO invente ofertas, promoções, descontos, períodos gratuitos ou qualquer benefício que não foi descrito nos dados da campanha.
+- Baseie o resumo e os copies SOMENTE nas informações fornecidas abaixo. Não adicione informações fictícias.
+
+Dados da campanha:
 - Nome: ${campanha.nome}
 - Descrição: ${campanha.descricao}
 - Objetivo: ${campanha.objetivo || 'não informado'}
@@ -50,7 +56,7 @@ Responda APENAS com um JSON válido, sem texto adicional, no seguinte formato:
   "resumo": "resumo da estratégia em 2-3 parágrafos",
   "distribuicao": [
     {
-      "plataforma": "nome da plataforma",
+      "plataforma": "nome da plataforma (somente meta ou google)",
       "percentual": número entre 0 e 100,
       "justificativa": "por que essa distribuição"
     }
@@ -58,8 +64,7 @@ Responda APENAS com um JSON válido, sem texto adicional, no seguinte formato:
   "copies": [
     {
       "titulo": "título do anúncio",
-      "texto": "texto do anúncio",
-      "formato": "tipo de anúncio (ex: carrossel, stories, search, display)"
+      "texto": "texto do anúncio"
     }
   ]
 }
