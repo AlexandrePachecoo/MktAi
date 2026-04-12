@@ -10,8 +10,9 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', path: '/dashboard', icon: '◈' },
-  { label: 'Campanhas', path: '/campanhas', icon: '▤' },
+  { label: 'Dashboard',    path: '/dashboard',    icon: '◈' },
+  { label: 'Campanhas',    path: '/campanhas',    icon: '▤' },
+  { label: 'Integrações',  path: '/integracoes',  icon: '⇄' },
 ];
 
 export function Sidebar() {

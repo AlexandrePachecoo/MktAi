@@ -47,7 +47,7 @@ async function buscarMetricasMeta(externalCampanhaId: string, accessToken: strin
 
 async function buscarMetricasGoogle(externalCampanhaId: string, accessToken: string): Promise<MetricasGoogle> {
   const { data } = await axios.get(
-    `https://googleads.googleapis.com/v16/customers/-/googleAds:search`,
+    `https://googleads.googleapis.com/v20/customers/-/googleAds:search`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -103,8 +103,8 @@ export async function buscarDashboard(campanhaId: string, userId: string) {
     where: { user_id: userId, plataforma: { in: plataformas } },
   });
 
-  const tokenPorPlataforma = Object.fromEntries(
-    integracoes.map((i) => [i.plataforma, i.access_token])
+  const integracaoPorPlataforma = Object.fromEntries(
+    integracoes.map((i) => [i.plataforma, i])
   );
 
   const resultados: Record<string, unknown> = {
@@ -115,11 +115,14 @@ export async function buscarDashboard(campanhaId: string, userId: string) {
   };
 
   if (plataformas.includes('meta')) {
-    if (!tokenPorPlataforma['meta']) {
+    const integ = integracaoPorPlataforma['meta'];
+    if (!integ) {
       resultados['meta'] = { erro: 'Integração com Meta não encontrada' };
+    } else if (!integ.account_id) {
+      resultados['meta'] = { erro: 'Conta de anúncios do Meta não configurada' };
     } else {
       try {
-        resultados['meta'] = await buscarMetricasMeta(campanhaId, tokenPorPlataforma['meta']);
+        resultados['meta'] = await buscarMetricasMeta(integ.account_id, integ.access_token);
       } catch {
         resultados['meta'] = { erro: 'Erro ao buscar métricas do Meta' };
       }
@@ -127,11 +130,14 @@ export async function buscarDashboard(campanhaId: string, userId: string) {
   }
 
   if (plataformas.includes('google')) {
-    if (!tokenPorPlataforma['google']) {
+    const integ = integracaoPorPlataforma['google'];
+    if (!integ) {
       resultados['google'] = { erro: 'Integração com Google não encontrada' };
+    } else if (!integ.account_id) {
+      resultados['google'] = { erro: 'Customer ID do Google Ads não configurado' };
     } else {
       try {
-        resultados['google'] = await buscarMetricasGoogle(campanhaId, tokenPorPlataforma['google']);
+        resultados['google'] = await buscarMetricasGoogle(integ.account_id, integ.access_token);
       } catch {
         resultados['google'] = { erro: 'Erro ao buscar métricas do Google' };
       }

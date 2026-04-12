@@ -69,6 +69,7 @@ model Integracao {
   access_token  String
   refresh_token String?
   expires_at    DateTime?
+  account_id    String?
 
   user User @relation(fields: [user_id], references: [id])
 

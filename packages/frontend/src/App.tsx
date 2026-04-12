@@ -7,6 +7,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { CampanhasPage } from '@/pages/CampanhasPage';
 import { NovaCampanhaPage } from '@/pages/NovaCampanhaPage';
 import { CampanhaDetailPage } from '@/pages/CampanhaDetailPage';
+import { IntegracoesPage } from '@/pages/IntegracoesPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();
@@ -66,6 +67,14 @@ function AppRoutes() {
         element={
           <PrivateRoute>
             <CampanhaDetailPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/integracoes"
+        element={
+          <PrivateRoute>
+            <IntegracoesPage />
           </PrivateRoute>
         }
       />
