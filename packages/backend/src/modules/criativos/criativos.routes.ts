@@ -29,7 +29,8 @@ router.post('/upload', upload.single('imagem'), async (req: Request, res: Respon
     const url = await uploadImagem(req.file, (req as AuthRequest).userId);
     res.status(201).json({ url });
   } catch (err: unknown) {
-    res.status(500).json({ error: 'Erro ao fazer upload da imagem' });
+    console.error('[upload] Erro:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Erro ao fazer upload da imagem' });
   }
 });
 

@@ -40,4 +40,19 @@ export const api = {
 
   delete: <T>(path: string) =>
     request<T>(path, { method: 'DELETE' }),
+
+  upload: async <T>(path: string, formData: FormData): Promise<T> => {
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // sem Content-Type: browser define o boundary automaticamente
+      },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? 'Erro desconhecido');
+    return data as T;
+  },
 };

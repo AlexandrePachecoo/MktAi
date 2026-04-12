@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button, Card } from '@/components/ui';
 import { useCampanha } from '@/hooks/useCampanha';
+import { useCriativos, Criativo } from '@/hooks/useCriativos';
 import { api } from '@/lib/api';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -57,10 +58,13 @@ export function CampanhaDetailPage() {
   const navigate = useNavigate();
   const { campanha, loading, error, recarregar } = useCampanha(id);
 
+  const { criativos, loading: loadingCriativos, recarregar: recarregarCriativos } = useCriativos(id);
   const [gerandoEstrategia, setGerandoEstrategia] = useState(false);
   const [erroEstrategia, setErroEstrategia] = useState('');
   const [alterandoStatus, setAlterandoStatus] = useState(false);
   const [copyExpandido, setCopyExpandido] = useState<number | null>(null);
+  const [uploadando, setUploadando] = useState(false);
+  const [erroUpload, setErroUpload] = useState('');
 
   async function gerarEstrategia() {
     setGerandoEstrategia(true);
@@ -72,6 +76,25 @@ export function CampanhaDetailPage() {
       setErroEstrategia(err instanceof Error ? err.message : 'Erro ao gerar estratégia');
     } finally {
       setGerandoEstrategia(false);
+    }
+  }
+
+  async function handleImagemSelecionada(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo || !id) return;
+    e.target.value = '';
+    setUploadando(true);
+    setErroUpload('');
+    try {
+      const formData = new FormData();
+      formData.append('imagem', arquivo);
+      const { url } = await api.upload<{ url: string }>('/upload/upload', formData);
+      await api.post(`/campanhas/${id}/criativos`, { url_imagem: url });
+      await recarregarCriativos();
+    } catch (err) {
+      setErroUpload(err instanceof Error ? err.message : 'Erro ao fazer upload');
+    } finally {
+      setUploadando(false);
     }
   }
 
@@ -285,9 +308,44 @@ export function CampanhaDetailPage() {
       </Card>
 
       {/* ── Criativos ── */}
-      <Card style={{ ...styles.section, ...styles.comingSoon }}>
-        <p style={styles.sectionTitle}>Criativos</p>
-        <p style={styles.muted}>Upload e gestão de criativos — em breve.</p>
+      <Card style={styles.section}>
+        <div style={styles.sectionHeader}>
+          <p style={styles.sectionTitle}>Criativos</p>
+          <div>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={uploadando}
+              onClick={() => document.getElementById('criativo-input')?.click()}
+            >
+              {uploadando ? 'Enviando...' : '+ Adicionar imagem'}
+            </Button>
+            <input
+              id="criativo-input"
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleImagemSelecionada}
+              disabled={uploadando}
+            />
+          </div>
+        </div>
+
+        {erroUpload && <p style={{ ...styles.errorText, marginBottom: '12px' }}>{erroUpload}</p>}
+
+        {loadingCriativos ? (
+          <p style={styles.muted}>Carregando criativos...</p>
+        ) : criativos.length === 0 ? (
+          <div style={styles.criativos_vazio}>
+            <p style={styles.muted}>Nenhum criativo adicionado ainda.</p>
+          </div>
+        ) : (
+          <div style={styles.criativos_grid}>
+            {criativos.map((c) => (
+              <CriativoThumb key={c.id} criativo={c} />
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* ── Testes A/B ── */}
@@ -296,6 +354,32 @@ export function CampanhaDetailPage() {
         <p style={styles.muted}>Comparação entre criativos — em breve.</p>
       </Card>
     </AppLayout>
+  );
+}
+
+// ─── CriativoThumb ────────────────────────────────────────────────────────────
+
+function CriativoThumb({ criativo }: { criativo: Criativo }) {
+  const [imgError, setImgError] = useState(false);
+
+  return (
+    <div style={styles.criativos_thumb}>
+      {imgError ? (
+        <div style={styles.criativos_thumbFallback}>
+          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Indisponível</span>
+        </div>
+      ) : (
+        <img
+          src={criativo.url_imagem}
+          alt="Criativo"
+          style={styles.criativos_thumbImg}
+          onError={() => setImgError(true)}
+        />
+      )}
+      <p style={styles.criativos_thumbData}>
+        {new Date(criativo.created_at).toLocaleDateString('pt-BR')}
+      </p>
+    </div>
   );
 }
 
@@ -415,6 +499,49 @@ const styles: Record<string, React.CSSProperties> = {
   },
   comingSoon: {
     opacity: 0.5,
+  },
+
+  // Criativos
+  criativos_vazio: {
+    padding: '32px 24px',
+    background: 'var(--color-bg)',
+    borderRadius: '8px',
+    border: '1px dashed var(--color-border)',
+    textAlign: 'center' as const,
+  },
+  criativos_grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+    gap: '12px',
+  },
+  criativos_thumb: {
+    border: '1px solid var(--color-border)',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    background: 'var(--color-bg-card)',
+    display: 'flex',
+    flexDirection: 'column' as const,
+  },
+  criativos_thumbImg: {
+    width: '100%',
+    aspectRatio: '1 / 1',
+    objectFit: 'cover' as const,
+    display: 'block',
+  },
+  criativos_thumbFallback: {
+    width: '100%',
+    aspectRatio: '1 / 1',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'var(--color-bg)',
+  },
+  criativos_thumbData: {
+    fontSize: '11px',
+    color: 'var(--color-text-muted)',
+    padding: '6px 8px',
+    margin: 0,
+    fontFamily: 'var(--font-ui)',
   },
 
   // Info grid
