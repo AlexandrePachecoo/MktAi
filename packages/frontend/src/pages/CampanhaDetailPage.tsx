@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button, Card } from '@/components/ui';
@@ -23,6 +23,23 @@ interface Estrategia {
   resumo: string;
   distribuicao: Distribuicao[];
   copies: Copy[];
+}
+
+interface CriativoEmTeste {
+  id: string;
+  url_imagem: string;
+  tipo: string;
+}
+
+interface TesteAB {
+  id: string;
+  campanha_id: string;
+  criativo_id_a: string;
+  criativo_id_b: string;
+  criativo_a: CriativoEmTeste;
+  criativo_b: CriativoEmTeste;
+  resultado: string | null;
+  status: string;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -59,6 +76,16 @@ export function CampanhaDetailPage() {
   const { campanha, loading, error, recarregar } = useCampanha(id);
 
   const { criativos, loading: loadingCriativos, recarregar: recarregarCriativos } = useCriativos(id);
+
+  // ── Testes A/B ──
+  const [testes, setTestes] = useState<TesteAB[]>([]);
+  const [loadingTestes, setLoadingTestes] = useState(true);
+  const [criandoTeste, setCriandoTeste] = useState(false);
+  const [mostrarNovoTeste, setMostrarNovoTeste] = useState(false);
+  const [selecionadoA, setSelecionadoA] = useState<string>('');
+  const [selecionadoB, setSelecionadoB] = useState<string>('');
+  const [erroTeste, setErroTeste] = useState('');
+  const [resultadoInput, setResultadoInput] = useState<Record<string, string>>({});
   const [gerandoEstrategia, setGerandoEstrategia] = useState(false);
   const [erroEstrategia, setErroEstrategia] = useState('');
   const [alterandoStatus, setAlterandoStatus] = useState(false);
@@ -128,6 +155,52 @@ export function CampanhaDetailPage() {
     setCopyIndexSelecionada(null);
     setErroGerarIA('');
     setMostrarGerarIA(true);
+  }
+
+  // ── Funções Testes A/B ──
+  async function carregarTestes() {
+    if (!id) return;
+    setLoadingTestes(true);
+    try {
+      const data = await api.get<TesteAB[]>(`/campanhas/${id}/testes-ab`);
+      setTestes(data);
+    } finally {
+      setLoadingTestes(false);
+    }
+  }
+
+  useEffect(() => { carregarTestes(); }, [id]);
+
+  async function criarTeste() {
+    if (!id || !selecionadoA || !selecionadoB) return;
+    setCriandoTeste(true);
+    setErroTeste('');
+    try {
+      await api.post(`/campanhas/${id}/testes-ab`, {
+        criativo_id_a: selecionadoA,
+        criativo_id_b: selecionadoB,
+      });
+      setMostrarNovoTeste(false);
+      setSelecionadoA('');
+      setSelecionadoB('');
+      await carregarTestes();
+    } catch (err) {
+      setErroTeste(err instanceof Error ? err.message : 'Erro ao criar teste');
+    } finally {
+      setCriandoTeste(false);
+    }
+  }
+
+  async function encerrarTeste(testeId: string) {
+    const resultado = resultadoInput[testeId]?.trim();
+    if (!resultado || !id) return;
+    try {
+      await api.patch(`/campanhas/${id}/testes-ab/${testeId}/resultado`, { resultado });
+      setResultadoInput(prev => ({ ...prev, [testeId]: '' }));
+      await carregarTestes();
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   async function alterarStatus(novoStatus: 'ativa' | 'pausada' | 'encerrada') {
@@ -445,9 +518,147 @@ export function CampanhaDetailPage() {
       </Card>
 
       {/* ── Testes A/B ── */}
-      <Card style={{ ...styles.section, ...styles.comingSoon }}>
-        <p style={styles.sectionTitle}>Testes A/B</p>
-        <p style={styles.muted}>Comparação entre criativos — em breve.</p>
+      <Card style={styles.section}>
+        <div style={styles.sectionHeader}>
+          <p style={styles.sectionTitle}>Testes A/B</p>
+          {criativos.length >= 2 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => { setMostrarNovoTeste(v => !v); setErroTeste(''); setSelecionadoA(''); setSelecionadoB(''); }}
+            >
+              {mostrarNovoTeste ? 'Cancelar' : '+ Novo teste'}
+            </Button>
+          )}
+        </div>
+
+        {/* Formulário novo teste */}
+        {mostrarNovoTeste && (
+          <div style={styles.abNovoBox}>
+            <p style={styles.gerarIALabel}>Selecione os dois criativos:</p>
+            <div style={styles.abSelectRow}>
+              <div style={styles.abSelectCol}>
+                <p style={styles.abSelectLabel}>Criativo A</p>
+                <div style={styles.abThumbGrid}>
+                  {criativos.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      style={{
+                        ...styles.abThumbBtn,
+                        ...(selecionadoA === c.id ? styles.abThumbBtnAtivo : {}),
+                        ...(selecionadoB === c.id ? styles.abThumbBtnBloqueado : {}),
+                      }}
+                      onClick={() => selecionadoB !== c.id && setSelecionadoA(selecionadoA === c.id ? '' : c.id)}
+                      disabled={selecionadoB === c.id}
+                    >
+                      <img src={c.url_imagem} alt="" style={styles.abThumbImg} />
+                      {selecionadoA === c.id && <span style={styles.abThumbCheck}>A</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={styles.abVs}>VS</div>
+              <div style={styles.abSelectCol}>
+                <p style={styles.abSelectLabel}>Criativo B</p>
+                <div style={styles.abThumbGrid}>
+                  {criativos.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      style={{
+                        ...styles.abThumbBtn,
+                        ...(selecionadoB === c.id ? styles.abThumbBtnAtivo : {}),
+                        ...(selecionadoA === c.id ? styles.abThumbBtnBloqueado : {}),
+                      }}
+                      onClick={() => selecionadoA !== c.id && setSelecionadoB(selecionadoB === c.id ? '' : c.id)}
+                      disabled={selecionadoA === c.id}
+                    >
+                      <img src={c.url_imagem} alt="" style={styles.abThumbImg} />
+                      {selecionadoB === c.id && <span style={styles.abThumbCheck}>B</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {erroTeste && <p style={{ ...styles.errorText, marginTop: '8px' }}>{erroTeste}</p>}
+            <Button
+              size="sm"
+              style={{ marginTop: '12px' }}
+              onClick={criarTeste}
+              disabled={criandoTeste || !selecionadoA || !selecionadoB}
+            >
+              {criandoTeste ? 'Criando...' : 'Iniciar teste'}
+            </Button>
+          </div>
+        )}
+
+        {criativos.length < 2 && (
+          <p style={styles.muted}>Adicione pelo menos 2 criativos para criar um teste A/B.</p>
+        )}
+
+        {/* Lista de testes */}
+        {loadingTestes ? (
+          <p style={{ ...styles.muted, marginTop: '12px' }}>Carregando testes...</p>
+        ) : testes.length === 0 && !mostrarNovoTeste ? (
+          <div style={{ ...styles.criativos_vazio, marginTop: criativos.length < 2 ? '12px' : '0' }}>
+            <p style={styles.muted}>Nenhum teste criado ainda.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: mostrarNovoTeste ? '16px' : '0' }}>
+            {testes.map(teste => (
+              <div key={teste.id} style={styles.abTesteCard}>
+                {/* Cabeçalho do teste */}
+                <div style={styles.abTesteHeader}>
+                  <span style={{
+                    ...styles.abTesteBadge,
+                    background: teste.status === 'ativo' ? 'rgba(232,93,38,0.1)' : 'rgba(150,150,150,0.1)',
+                    color: teste.status === 'ativo' ? 'var(--color-ember)' : '#888',
+                  }}>
+                    {teste.status === 'ativo' ? 'Ativo' : 'Encerrado'}
+                  </span>
+                  {teste.resultado && (
+                    <span style={styles.abTesteResultado}>Vencedor: {teste.resultado}</span>
+                  )}
+                </div>
+
+                {/* Par de criativos */}
+                <div style={styles.abTesteImagens}>
+                  <div style={styles.abTesteImgWrap}>
+                    <span style={styles.abTesteLabel}>A</span>
+                    <img src={teste.criativo_a.url_imagem} alt="Criativo A" style={styles.abTesteImg} />
+                  </div>
+                  <span style={styles.abTesteVs}>VS</span>
+                  <div style={styles.abTesteImgWrap}>
+                    <span style={styles.abTesteLabel}>B</span>
+                    <img src={teste.criativo_b.url_imagem} alt="Criativo B" style={styles.abTesteImg} />
+                  </div>
+                </div>
+
+                {/* Encerrar teste */}
+                {teste.status === 'ativo' && (
+                  <div style={styles.abTesteEncerrar}>
+                    <input
+                      type="text"
+                      placeholder="Descreva o vencedor (ex: Criativo A teve CTR 40% maior)"
+                      value={resultadoInput[teste.id] ?? ''}
+                      onChange={e => setResultadoInput(prev => ({ ...prev, [teste.id]: e.target.value }))}
+                      style={styles.abTesteInput}
+                    />
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => encerrarTeste(teste.id)}
+                      disabled={!resultadoInput[teste.id]?.trim()}
+                    >
+                      Encerrar
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </AppLayout>
   );
@@ -598,10 +809,6 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: '0.06em',
     color: 'var(--color-text-muted)',
   },
-  comingSoon: {
-    opacity: 0.5,
-  },
-
   // Criativos
   criativos_vazio: {
     padding: '32px 24px',
@@ -653,6 +860,163 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '2px 5px',
     fontFamily: 'var(--font-ui)',
     letterSpacing: '0.04em',
+  },
+
+  // Testes A/B
+  abNovoBox: {
+    background: 'var(--color-bg)',
+    border: '1px dashed var(--color-border)',
+    borderRadius: '8px',
+    padding: '16px',
+    marginBottom: '16px',
+  },
+  abSelectRow: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'flex-start',
+  },
+  abSelectCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  abSelectLabel: {
+    fontSize: '11px',
+    fontWeight: 700,
+    color: 'var(--color-text-muted)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.06em',
+    margin: '0 0 8px 0',
+    fontFamily: 'var(--font-ui)',
+  },
+  abThumbGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
+    gap: '6px',
+  },
+  abThumbBtn: {
+    position: 'relative' as const,
+    border: '2px solid var(--color-border)',
+    borderRadius: '6px',
+    overflow: 'hidden',
+    background: 'none',
+    cursor: 'pointer',
+    padding: 0,
+    aspectRatio: '1 / 1',
+  },
+  abThumbBtnAtivo: {
+    borderColor: 'var(--color-ember)',
+    boxShadow: '0 0 0 2px rgba(232,93,38,0.25)',
+  },
+  abThumbBtnBloqueado: {
+    opacity: 0.35,
+    cursor: 'not-allowed',
+  },
+  abThumbImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover' as const,
+    display: 'block',
+  },
+  abThumbCheck: {
+    position: 'absolute' as const,
+    top: '4px',
+    right: '4px',
+    fontSize: '10px',
+    fontWeight: 800,
+    background: 'var(--color-ember)',
+    color: '#fff',
+    borderRadius: '4px',
+    padding: '1px 5px',
+    fontFamily: 'var(--font-ui)',
+  },
+  abVs: {
+    fontSize: '12px',
+    fontWeight: 800,
+    color: 'var(--color-text-muted)',
+    alignSelf: 'center',
+    padding: '0 4px',
+    fontFamily: 'var(--font-ui)',
+  },
+  abTesteCard: {
+    border: '1px solid var(--color-border)',
+    borderRadius: '8px',
+    padding: '16px',
+    background: 'var(--color-bg-card)',
+  },
+  abTesteHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginBottom: '12px',
+  },
+  abTesteBadge: {
+    fontSize: '10px',
+    fontWeight: 700,
+    borderRadius: '20px',
+    padding: '3px 10px',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.04em',
+    fontFamily: 'var(--font-ui)',
+  },
+  abTesteResultado: {
+    fontSize: '12px',
+    color: 'var(--color-text-muted)',
+    fontFamily: 'var(--font-ui)',
+  },
+  abTesteImagens: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  abTesteImgWrap: {
+    position: 'relative' as const,
+    width: '80px',
+    flexShrink: 0,
+    borderRadius: '6px',
+    overflow: 'hidden',
+    border: '1px solid var(--color-border)',
+  },
+  abTesteLabel: {
+    position: 'absolute' as const,
+    top: '4px',
+    left: '4px',
+    fontSize: '10px',
+    fontWeight: 800,
+    background: 'rgba(0,0,0,0.55)',
+    color: '#fff',
+    borderRadius: '3px',
+    padding: '1px 5px',
+    fontFamily: 'var(--font-ui)',
+  },
+  abTesteImg: {
+    width: '80px',
+    height: '80px',
+    objectFit: 'cover' as const,
+    display: 'block',
+  },
+  abTesteVs: {
+    fontSize: '11px',
+    fontWeight: 800,
+    color: 'var(--color-text-muted)',
+    flexShrink: 0,
+    fontFamily: 'var(--font-ui)',
+  },
+  abTesteEncerrar: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+    marginTop: '12px',
+  },
+  abTesteInput: {
+    flex: 1,
+    background: 'var(--color-bg)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '6px',
+    padding: '7px 10px',
+    fontSize: '12px',
+    fontFamily: 'var(--font-ui)',
+    color: 'var(--color-text-primary)',
+    outline: 'none',
   },
 
   // Gerar IA
