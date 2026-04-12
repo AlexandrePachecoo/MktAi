@@ -65,6 +65,11 @@ export function CampanhaDetailPage() {
   const [copyExpandido, setCopyExpandido] = useState<number | null>(null);
   const [uploadando, setUploadando] = useState(false);
   const [erroUpload, setErroUpload] = useState('');
+  const [mostrarGerarIA, setMostrarGerarIA] = useState(false);
+  const [extraIA, setExtraIA] = useState('');
+  const [copyIndexSelecionada, setCopyIndexSelecionada] = useState<number | null>(null);
+  const [gerandoCriativo, setGerandoCriativo] = useState(false);
+  const [erroGerarIA, setErroGerarIA] = useState('');
 
   async function gerarEstrategia() {
     setGerandoEstrategia(true);
@@ -96,6 +101,33 @@ export function CampanhaDetailPage() {
     } finally {
       setUploadando(false);
     }
+  }
+
+  async function gerarCriativoIA() {
+    if (!id) return;
+    setGerandoCriativo(true);
+    setErroGerarIA('');
+    try {
+      await api.post(`/campanhas/${id}/criativos/gerar`, {
+        copy_index: copyIndexSelecionada ?? undefined,
+        extra: extraIA.trim() || undefined,
+      });
+      await recarregarCriativos();
+      setMostrarGerarIA(false);
+      setExtraIA('');
+      setCopyIndexSelecionada(null);
+    } catch (err) {
+      setErroGerarIA(err instanceof Error ? err.message : 'Erro ao gerar criativo');
+    } finally {
+      setGerandoCriativo(false);
+    }
+  }
+
+  function abrirGerarIA() {
+    setExtraIA('');
+    setCopyIndexSelecionada(null);
+    setErroGerarIA('');
+    setMostrarGerarIA(true);
   }
 
   async function alterarStatus(novoStatus: 'ativa' | 'pausada' | 'encerrada') {
@@ -311,7 +343,15 @@ export function CampanhaDetailPage() {
       <Card style={styles.section}>
         <div style={styles.sectionHeader}>
           <p style={styles.sectionTitle}>Criativos</p>
-          <div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={abrirGerarIA}
+              disabled={gerandoCriativo || uploadando}
+            >
+              ✦ Gerar com IA
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -330,6 +370,62 @@ export function CampanhaDetailPage() {
             />
           </div>
         </div>
+
+        {mostrarGerarIA && (
+          <div style={styles.gerarIABox}>
+            {(() => {
+              const estrategiaAtual = campanha?.estrategia as Estrategia | null;
+              const copies = estrategiaAtual?.copies ?? [];
+              return copies.length > 0 ? (
+                <div style={{ marginBottom: '16px' }}>
+                  <p style={styles.gerarIALabel}>Usar uma copy da estratégia (opcional):</p>
+                  <div style={styles.gerarIACopiesList}>
+                    {copies.map((copy, idx) => (
+                      <button
+                        key={idx}
+                        style={{
+                          ...styles.gerarIACopyBtn,
+                          ...(copyIndexSelecionada === idx ? styles.gerarIACopyBtnAtivo : {}),
+                        }}
+                        onClick={() => setCopyIndexSelecionada(copyIndexSelecionada === idx ? null : idx)}
+                        disabled={gerandoCriativo}
+                        type="button"
+                      >
+                        <span style={styles.gerarIACopyNum}>{idx + 1}</span>
+                        <span style={styles.gerarIACopyTitulo}>{copy.titulo}</span>
+                        {copyIndexSelecionada === idx && <span style={styles.gerarIACopyCheck}>✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
+            <p style={styles.gerarIALabel}>Observações adicionais (opcional):</p>
+            <textarea
+              value={extraIA}
+              onChange={(e) => setExtraIA(e.target.value)}
+              rows={3}
+              style={styles.gerarIATextarea}
+              placeholder="Ex: fundo escuro, tons de azul e dourado, estilo minimalista..."
+              disabled={gerandoCriativo}
+            />
+            {erroGerarIA && <p style={{ ...styles.errorText, marginBottom: '8px' }}>{erroGerarIA}</p>}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button onClick={gerarCriativoIA} disabled={gerandoCriativo} size="sm">
+                {gerandoCriativo ? 'Gerando imagem...' : 'Gerar imagem'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMostrarGerarIA(false)}
+                disabled={gerandoCriativo}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        )}
 
         {erroUpload && <p style={{ ...styles.errorText, marginBottom: '12px' }}>{erroUpload}</p>}
 
@@ -376,9 +472,14 @@ function CriativoThumb({ criativo }: { criativo: Criativo }) {
           onError={() => setImgError(true)}
         />
       )}
-      <p style={styles.criativos_thumbData}>
-        {new Date(criativo.created_at).toLocaleDateString('pt-BR')}
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px' }}>
+        <p style={{ ...styles.criativos_thumbData, padding: 0 }}>
+          {new Date(criativo.created_at).toLocaleDateString('pt-BR')}
+        </p>
+        {criativo.tipo === 'gerado_ia' && (
+          <span style={styles.criativos_thumbBadge}>IA</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -542,6 +643,97 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '6px 8px',
     margin: 0,
     fontFamily: 'var(--font-ui)',
+  },
+  criativos_thumbBadge: {
+    fontSize: '9px',
+    fontWeight: 700,
+    color: 'var(--color-ember)',
+    background: 'rgba(232,93,38,0.12)',
+    borderRadius: '4px',
+    padding: '2px 5px',
+    fontFamily: 'var(--font-ui)',
+    letterSpacing: '0.04em',
+  },
+
+  // Gerar IA
+  gerarIABox: {
+    background: 'var(--color-bg)',
+    border: '1px dashed var(--color-border)',
+    borderRadius: '8px',
+    padding: '16px',
+    marginBottom: '16px',
+  },
+  gerarIALabel: {
+    fontSize: '12px',
+    fontWeight: 500,
+    color: 'var(--color-text-muted)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
+    margin: '0 0 8px 0',
+    fontFamily: 'var(--font-ui)',
+  },
+  gerarIATextarea: {
+    width: '100%',
+    background: 'var(--color-bg-card)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '6px',
+    padding: '10px 12px',
+    fontSize: '12px',
+    fontFamily: 'var(--font-ui)',
+    color: 'var(--color-text-primary)',
+    resize: 'vertical' as const,
+    marginBottom: '12px',
+    boxSizing: 'border-box' as const,
+    outline: 'none',
+    lineHeight: 1.6,
+  },
+  gerarIACopiesList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '6px',
+  },
+  gerarIACopyBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '8px 12px',
+    background: 'var(--color-bg-card)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    textAlign: 'left' as const,
+    width: '100%',
+    transition: 'border-color 0.15s',
+  },
+  gerarIACopyBtnAtivo: {
+    borderColor: 'var(--color-ember)',
+    background: 'rgba(232,93,38,0.06)',
+  },
+  gerarIACopyNum: {
+    fontSize: '10px',
+    fontWeight: 700,
+    color: 'var(--color-ember)',
+    background: 'rgba(232,93,38,0.1)',
+    borderRadius: '4px',
+    padding: '2px 6px',
+    fontFamily: 'var(--font-ui)',
+    flexShrink: 0,
+  },
+  gerarIACopyTitulo: {
+    fontSize: '12px',
+    fontWeight: 500,
+    color: 'var(--color-text-primary)',
+    fontFamily: 'var(--font-ui)',
+    flex: 1,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+  },
+  gerarIACopyCheck: {
+    fontSize: '12px',
+    color: 'var(--color-ember)',
+    fontWeight: 700,
+    flexShrink: 0,
   },
 
   // Info grid

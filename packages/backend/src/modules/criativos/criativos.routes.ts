@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { authMiddleware, AuthRequest } from '../../middlewares/auth.middleware';
-import { uploadImagem, associarCriativo, listarCriativos } from './criativos.service';
+import { uploadImagem, associarCriativo, listarCriativos, gerarCriativoIA } from './criativos.service';
 
 const router = Router();
 const upload = multer({
@@ -55,6 +55,30 @@ router.post('/:campanhaId/criativos', async (req: Request, res: Response): Promi
       return;
     }
     res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// POST /campanhas/:id/criativos/gerar — gera criativo via Ideogram AI
+router.post('/:campanhaId/criativos/gerar', async (req: Request, res: Response): Promise<void> => {
+  const { copy_index, extra } = req.body;
+
+  try {
+    const criativo = await gerarCriativoIA(req.params.campanhaId, (req as AuthRequest).userId, {
+      copyIndex: typeof copy_index === 'number' ? copy_index : undefined,
+      extra: typeof extra === 'string' ? extra : undefined,
+    });
+    res.status(201).json(criativo);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'NOT_FOUND') {
+      res.status(404).json({ error: 'Campanha não encontrada' });
+      return;
+    }
+    if (err instanceof Error && err.name === 'FORBIDDEN') {
+      res.status(403).json({ error: 'Acesso negado' });
+      return;
+    }
+    console.error('[criativos/gerar] Erro:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Erro ao gerar criativo' });
   }
 });
 
