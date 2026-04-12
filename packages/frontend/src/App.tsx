@@ -3,6 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
+import { DashboardPage } from '@/pages/DashboardPage';
+import { CampanhasPage } from '@/pages/CampanhasPage';
+import { NovaCampanhaPage } from '@/pages/NovaCampanhaPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();
@@ -12,24 +15,6 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();
   return token ? <Navigate to="/dashboard" replace /> : <>{children}</>;
-}
-
-function Placeholder({ name }: { name: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        fontFamily: 'var(--font-display)',
-        fontSize: '24px',
-        color: 'var(--color-ember)',
-      }}
-    >
-      {name}
-    </div>
-  );
 }
 
 function AppRoutes() {
@@ -55,7 +40,23 @@ function AppRoutes() {
         path="/dashboard"
         element={
           <PrivateRoute>
-            <Placeholder name="Dashboard — em breve" />
+            <DashboardPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/campanhas"
+        element={
+          <PrivateRoute>
+            <CampanhasPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/campanhas/nova"
+        element={
+          <PrivateRoute>
+            <NovaCampanhaPage />
           </PrivateRoute>
         }
       />
