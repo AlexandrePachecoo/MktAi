@@ -1,7 +1,9 @@
 import OpenAI from 'openai';
 import { prisma } from '../../lib/prisma';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 export interface Estrategia {
   resumo: string;
@@ -65,7 +67,7 @@ Responda APENAS com um JSON válido, sem texto adicional, no seguinte formato:
 Gere exatamente 5 opções de copies variadas para diferentes formatos e abordagens.
 `.trim();
 
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },

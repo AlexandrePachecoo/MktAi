@@ -7,7 +7,9 @@ const connection = {
   port: Number(process.env.REDIS_PORT) || 6379,
 };
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 async function processarCampanha(campanhaId: string) {
   const campanha = await prisma.campanha.findUnique({
@@ -18,7 +20,7 @@ async function processarCampanha(campanhaId: string) {
   if (!campanha || campanha.status !== 'ativa') return;
 
   // Pede para a IA analisar a campanha e sugerir ajustes
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
       {
