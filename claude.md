@@ -12,11 +12,11 @@ Plataforma SaaS com IA para gerenciar campanhas no Meta Ads e Google Ads. Gera e
 
 ## Requisitos Funcionais
 
-- Usuário conecta suas contas do Meta Ads e Google Ads via OAuth
+- Usuário conecta suas contas do Meta Ads e Google Ads via OAuth e seleciona a conta de anúncios
 - Usuário preenche nome, descrição, objetivo e público-alvo da campanha
 - IA gera uma estratégia de marketing com distribuição de anúncios e 5 opções de copies
 - IA otimiza campanhas a cada 1h e pode pausar/encerrar automaticamente
-- Usuário faz upload dos próprios criativos (geração por IA fica para versão futura)
+- Usuário faz upload dos próprios criativos ou gera com Ideogram AI
 - Testes A/B entre dois criativos de uma mesma campanha
 
 ---
@@ -30,7 +30,8 @@ Plataforma SaaS com IA para gerenciar campanhas no Meta Ads e Google Ads. Gera e
 | Testes | Jest |
 | Banco de dados | PostgreSQL (Supabase) |
 | ORM | Prisma |
-| IA | OpenAI gpt-4o-mini (estratégia e otimização) |
+| IA estratégia/otimização | OpenAI gpt-4o-mini |
+| IA geração de imagens | Ideogram AI (modelo V_2, aspect ratio 1:1) |
 | Fila de jobs | BullMQ + Redis (Docker local) |
 | Object Storage | Supabase Storage (bucket: `criativos`, público) |
 
@@ -71,8 +72,24 @@ Os resultados das análises do worker (status, motivo, sugestões) ficam apenas 
 ### Migrations via prisma db push (não migrate dev)
 O `prisma migrate dev` requer terminal interativo. Usar sempre `npx prisma db push --accept-data-loss` para aplicar mudanças de schema.
 
-### Criativos gerados por IA estão desabilitados por ora
-Usuário faz upload dos próprios criativos. DALL-E fica para versão futura. `tipo` no banco pode ser `upload` ou `gerado_ia`.
+### Criativos gerados por IA via Ideogram
+Integração com Ideogram AI ativa. O backend constrói o prompt completo a partir dos dados da campanha (nome, descrição, objetivo, público-alvo) + copy selecionada opcional + observações extras do usuário. A imagem é baixada do Ideogram e salva no Supabase Storage. `tipo` no banco: `upload` ou `gerado_ia`.
+
+### OAuth — JWT no parâmetro state
+Os callbacks OAuth do Meta e Google não recebem header `Authorization`. O JWT do usuário é embedado no parâmetro `state` da URL OAuth e verificado no callback. Após sucesso, redireciona para `FRONTEND_URL/integracoes?conectado=meta` (ou `?erro=meta`).
+
+### Integrações — account_id obrigatório para métricas
+Cada integração salva um `account_id` além do token OAuth:
+- **Meta**: `act_XXXXXXX` — buscado automaticamente via `/me/adaccounts`
+- **Google**: ID numérico — buscado via `customers:listAccessibleCustomers` + GAQL search para nome descritivo
+
+O dashboard só busca métricas se `account_id` estiver salvo. Sem ele, retorna `{ erro: "Conta não configurada" }`.
+
+### Google Ads API — versão v20
+Usar sempre `v20` nas chamadas à Google Ads API. Versões v16–v19 foram descontinuadas (retornam 404). Quando a versão for atualizada no futuro, mudar em `integracoes.service.ts` e `dashboard.service.ts`.
+
+### Google Ads Developer Token — modo de teste
+O developer token em modo de teste só acessa contas de teste do Google Ads. Para produção, solicitar Basic Access em: Google Ads → Ferramentas → Central de API.
 
 ---
 
@@ -108,9 +125,10 @@ id, campanha_id, criativo_id_a, criativo_id_b, resultado, status
 
 ### Integracao
 ```
-id, user_id, plataforma, access_token, refresh_token, expires_at
+id, user_id, plataforma, access_token, refresh_token, expires_at, account_id
 @@unique([user_id, plataforma])
 ```
+- `account_id`: ID da conta de anúncios (Meta: `act_XXXXXXX`, Google: ID numérico sem hífens)
 
 ---
 
@@ -122,12 +140,17 @@ POST /auth/register   → { nome, email, password }
 POST /auth/login      → { email, password } → { token, user }
 ```
 
-### Integrações OAuth
+### Integrações
 ```
-GET /integracoes/meta              → redireciona para OAuth do Meta
-GET /integracoes/meta/callback     → salva token no banco
-GET /integracoes/google            → redireciona para OAuth do Google
-GET /integracoes/google/callback   → salva token no banco
+GET    /integracoes                        → lista Meta e Google com status + account_id
+DELETE /integracoes/:plataforma            → desconecta integração
+PATCH  /integracoes/:plataforma/conta      → { account_id } → salva conta de anúncios
+GET    /integracoes/meta                   → retorna { url } para OAuth do Meta
+GET    /integracoes/meta/callback          → callback OAuth, lê JWT do state, redireciona frontend
+GET    /integracoes/meta/contas            → lista ad accounts via /me/adaccounts
+GET    /integracoes/google                 → retorna { url } para OAuth do Google
+GET    /integracoes/google/callback        → callback OAuth, lê JWT do state, redireciona frontend
+GET    /integracoes/google/contas          → lista customers via listAccessibleCustomers + GAQL
 ```
 
 ### Campanhas
@@ -142,9 +165,10 @@ POST   /campanhas/:id/estrategia  → IA gera estratégia com distribuição + 5
 
 ### Criativos
 ```
-POST /upload/upload                  → multipart/form-data, campo "imagem" → { url }
-POST /campanhas/:id/criativos        → { url_imagem } → associa à campanha
-GET  /campanhas/:id/criativos        → lista criativos
+POST /upload/upload                       → multipart/form-data, campo "imagem" → { url }
+POST /campanhas/:id/criativos             → { url_imagem } → associa à campanha (tipo: upload)
+GET  /campanhas/:id/criativos             → lista criativos
+POST /campanhas/:id/criativos/gerar       → { copy_index?, extra? } → gera com Ideogram AI
 ```
 
 ### Testes A/B
@@ -156,8 +180,27 @@ PATCH /campanhas/:id/testes-ab/:testeId/resultado   → { resultado } → encerr
 
 ### Dashboard
 ```
-GET /dashboard/:campanha_id  → métricas em tempo real do Meta/Google
+GET /dashboard/:campanha_id  → métricas em tempo real do Meta/Google (requer account_id salvo)
 ```
+
+---
+
+## Geração de Criativos com Ideogram AI
+
+O backend monta o prompt automaticamente a partir dos dados da campanha:
+```
+PRODUTO/MARCA, DESCRIÇÃO, OBJETIVO, PÚBLICO-ALVO
++ COPY DO ANÚNCIO (se copy_index informado)
++ OBSERVAÇÕES ADICIONAIS (se extra informado)
++ instruções de estilo visual fixas
+```
+
+O frontend envia apenas `{ copy_index?: number, extra?: string }`. O usuário pode:
+1. Selecionar uma copy da estratégia (opcional)
+2. Adicionar observações extras no textarea (opcional)
+3. Clicar "Gerar imagem" — sem precisar editar o prompt
+
+Fluxo: Ideogram API → download da imagem → upload Supabase Storage → salva Criativo com `tipo: gerado_ia`
 
 ---
 
@@ -207,10 +250,9 @@ Servidor sobe → iniciarScheduler()
 
 ## Dashboard — Métricas
 
-- Meta: `impressoes, cliques, gasto, alcance, ctr, cpc`
-- Google: `impressoes, cliques, gasto, ctr, cpc`
-- Se integração não estiver conectada, retorna `{ "erro": "..." }` dentro da chave da plataforma sem derrubar o endpoint
-- Google Ads requer `GOOGLE_ADS_DEVELOPER_TOKEN` no `.env`
+- Meta: `impressoes, cliques, gasto, alcance, ctr, cpc` — usa `account_id` salvo na Integracao
+- Google: `impressoes, cliques, gasto, ctr, cpc` — usa `account_id` salvo na Integracao
+- Se integração não conectada ou `account_id` não configurado, retorna `{ "erro": "..." }` sem derrubar o endpoint
 
 ---
 
@@ -225,12 +267,14 @@ META_REDIRECT_URI
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
 GOOGLE_REDIRECT_URI
-GOOGLE_ADS_DEVELOPER_TOKEN   # necessário para métricas do Google
+GOOGLE_ADS_DEVELOPER_TOKEN   # necessário para métricas e listagem de contas do Google
+IDEOGRAM_API_KEY             # geração de criativos com IA
 SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 REDIS_HOST
 REDIS_PORT
 OPENAI_API_KEY
+FRONTEND_URL                 # ex: http://localhost:5173 — usado no redirect pós-OAuth
 ```
 
 ---
@@ -243,14 +287,31 @@ Usuário → API Gateway (JWT) → Módulo → PostgreSQL
                                       → Supabase Storage (criativos)
 ```
 
+### Fluxo OAuth
+```
+Usuário → GET /integracoes/:plataforma → { url }
+       → redireciona para Meta/Google (JWT embedado no state)
+       → callback extrai JWT do state → salva token no banco
+       → redireciona para FRONTEND_URL/integracoes?conectado=:plataforma
+```
+
 ### Fluxo da IA (assíncrono — a cada 1h)
 ```
 Cron (1h) → BullMQ → Worker → OpenAI → PostgreSQL (atualiza status)
 ```
 
+### Geração de criativo (síncrono)
+```
+Usuário → POST /campanhas/:id/criativos/gerar
+        → Backend monta prompt com dados da campanha
+        → Ideogram API → download imagem
+        → Upload Supabase Storage
+        → Salva Criativo (tipo: gerado_ia)
+```
+
 ### Dashboard (síncrono — tempo real)
 ```
-Usuário → Dashboard → Meta/Google Ads (direto, sem passar pela fila)
+Usuário → Dashboard → Meta/Google Ads API (direto, usa account_id salvo)
 ```
 
 ---
@@ -266,4 +327,7 @@ Usuário → Dashboard → Meta/Google Ads (direto, sem passar pela fila)
 - ❌ Não processar jobs de IA de forma síncrona no request do usuário
 - ❌ Não criar funções sem testes — toda função nova deve ter teste correspondente
 - ❌ Não usar `prisma migrate dev` (requer terminal interativo) — usar `prisma db push`
-- ❌ Não gerar criativos com IA por enquanto — usuário faz upload
+- ❌ Não deixar o prompt do Ideogram no frontend — o backend monta o prompt completo
+- ❌ Não usar authMiddleware nos callbacks OAuth — eles recebem redirect do browser sem header JWT
+- ❌ Não usar versões < v20 da Google Ads API (v16–v19 foram descontinuadas)
+- ❌ Não buscar métricas sem verificar se account_id está salvo na Integracao
