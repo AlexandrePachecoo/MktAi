@@ -7,9 +7,9 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <div style={styles.root}>
+    <div className="app-root" style={styles.root}>
       <Sidebar />
-      <main style={styles.main}>{children}</main>
+      <main className="app-main" style={styles.main}>{children}</main>
     </div>
   );
 }
