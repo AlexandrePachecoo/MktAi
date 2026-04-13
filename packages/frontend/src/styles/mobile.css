@@ -1,0 +1,93 @@
+/* faro. — Mobile Responsive Styles (max-width: 768px) */
+
+@media (max-width: 768px) {
+
+  /* ─── Layout principal ───────────────────────────────────────────────────── */
+
+  .app-root {
+    flex-direction: column !important;
+  }
+
+  .app-main {
+    padding: 20px 16px 80px 16px !important; /* espaço para o bottom nav */
+  }
+
+  /* ─── Sidebar → Bottom navigation bar ───────────────────────────────────── */
+
+  .app-sidebar {
+    width: 100% !important;
+    min-height: unset !important;
+    height: 64px;
+    flex-direction: row !important;
+    padding: 0 8px !important;
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    border-right: none !important;
+    border-top: 1px solid var(--color-border);
+    align-items: center;
+  }
+
+  .sidebar-logo {
+    display: none !important;
+  }
+
+  .sidebar-nav {
+    flex-direction: row !important;
+    flex: 1;
+    justify-content: space-around;
+    gap: 0 !important;
+  }
+
+  .sidebar-nav-item {
+    flex-direction: column !important;
+    gap: 2px !important;
+    padding: 8px 12px !important;
+    font-size: 10px !important;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+  }
+
+  .sidebar-nav-icon {
+    font-size: 20px !important;
+  }
+
+  .sidebar-footer {
+    display: none !important;
+  }
+
+  /* ─── Dashboard — KPI grid ───────────────────────────────────────────────── */
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* ─── Dashboard — plataforma tabs ───────────────────────────────────────── */
+
+  .plataforma-tabs {
+    flex-wrap: wrap;
+  }
+
+  /* ─── Campanhas — lista ──────────────────────────────────────────────────── */
+
+  .campanhas-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ─── Gráfico — margens ──────────────────────────────────────────────────── */
+
+  .chart-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+
+  /* ─── NovaCampanha / Forms ───────────────────────────────────────────────── */
+
+  .form-row {
+    flex-direction: column !important;
+  }
+}

@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis-mktai
+    ports:
+      - '6379:6379'
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend
+    container_name: faro-backend
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+# Para desenvolvimento local (sem build):
+# docker compose up redis   ← sobe apenas o Redis
+# npm run dev               ← roda backend e frontend localmente

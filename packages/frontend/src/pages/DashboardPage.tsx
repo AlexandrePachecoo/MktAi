@@ -165,7 +165,7 @@ export function DashboardPage() {
           )}
 
           {/* Toggle de plataforma */}
-          <div style={styles.plataformaTabs}>
+          <div className="plataforma-tabs" style={styles.plataformaTabs}>
             {(['ambos', 'meta', 'google'] as Plataforma[]).map((p) => (
               <button
                 key={p}
@@ -183,7 +183,7 @@ export function DashboardPage() {
           </div>
 
           {/* KPI cards — clicáveis */}
-          <div style={styles.kpiGrid}>
+          <div className="kpi-grid" style={styles.kpiGrid}>
             {METRICAS.map((m) => {
               const valorMeta   = metaData[m.key as keyof MetricasMeta] as number;
               const valorGoogle = googleData[m.key as keyof MetricasGoogle] as number ?? null;
@@ -218,7 +218,7 @@ export function DashboardPage() {
 
           {/* Gráfico */}
           <Card>
-            <div style={styles.chartHeader}>
+            <div className="chart-header" style={styles.chartHeader}>
               <p style={styles.chartTitle}>
                 {metricaDef.label}
                 {plataformaAtiva !== 'ambos' && ` — ${plataformaAtiva === 'meta' ? 'Meta' : 'Google'}`}

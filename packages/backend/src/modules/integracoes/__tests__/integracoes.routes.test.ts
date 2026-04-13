@@ -13,7 +13,7 @@ function makeToken(userId: string) {
 }
 
 describe('GET /integracoes/meta', () => {
-  it('redireciona para URL do Meta OAuth', async () => {
+  it('retorna URL do Meta OAuth como JSON', async () => {
     mockedService.getMetaAuthUrl.mockReturnValue('https://facebook.com/oauth?mock=1');
 
     const token = makeToken('user-1');
@@ -21,8 +21,8 @@ describe('GET /integracoes/meta', () => {
       .get('/integracoes/meta')
       .set('Authorization', `Bearer ${token}`);
 
-    expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('https://facebook.com/oauth?mock=1');
+    expect(res.status).toBe(200);
+    expect(res.body.url).toBe('https://facebook.com/oauth?mock=1');
   });
 
   it('retorna 401 sem token', async () => {
@@ -32,31 +32,30 @@ describe('GET /integracoes/meta', () => {
 });
 
 describe('GET /integracoes/meta/callback', () => {
-  it('salva integração e retorna sucesso', async () => {
+  it('salva integração e redireciona com sucesso', async () => {
     mockedService.handleMetaCallback.mockResolvedValue(undefined);
 
-    const token = makeToken('user-1');
+    const state = makeToken('user-1');
     const res = await request(app)
-      .get('/integracoes/meta/callback?code=abc123')
-      .set('Authorization', `Bearer ${token}`);
+      .get(`/integracoes/meta/callback?code=abc123&state=${state}`);
 
-    expect(res.status).toBe(200);
-    expect(res.body.message).toBe('Meta Ads conectado com sucesso');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('conectado=meta');
     expect(mockedService.handleMetaCallback).toHaveBeenCalledWith('abc123', 'user-1');
   });
 
-  it('retorna 400 quando callback retorna erro do Meta', async () => {
-    const token = makeToken('user-1');
+  it('redireciona com erro quando callback retorna erro do Meta', async () => {
+    const state = makeToken('user-1');
     const res = await request(app)
-      .get('/integracoes/meta/callback?error=access_denied')
-      .set('Authorization', `Bearer ${token}`);
+      .get(`/integracoes/meta/callback?error=access_denied&state=${state}`);
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('erro=meta');
   });
 });
 
 describe('GET /integracoes/google', () => {
-  it('redireciona para URL do Google OAuth', async () => {
+  it('retorna URL do Google OAuth como JSON', async () => {
     mockedService.getGoogleAuthUrl.mockReturnValue('https://accounts.google.com/oauth?mock=1');
 
     const token = makeToken('user-1');
@@ -64,32 +63,31 @@ describe('GET /integracoes/google', () => {
       .get('/integracoes/google')
       .set('Authorization', `Bearer ${token}`);
 
-    expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('https://accounts.google.com/oauth?mock=1');
+    expect(res.status).toBe(200);
+    expect(res.body.url).toBe('https://accounts.google.com/oauth?mock=1');
   });
 });
 
 describe('GET /integracoes/google/callback', () => {
-  it('salva integração e retorna sucesso', async () => {
+  it('salva integração e redireciona com sucesso', async () => {
     mockedService.handleGoogleCallback.mockResolvedValue(undefined);
 
-    const token = makeToken('user-1');
+    const state = makeToken('user-1');
     const res = await request(app)
-      .get('/integracoes/google/callback?code=xyz789')
-      .set('Authorization', `Bearer ${token}`);
+      .get(`/integracoes/google/callback?code=xyz789&state=${state}`);
 
-    expect(res.status).toBe(200);
-    expect(res.body.message).toBe('Google Ads conectado com sucesso');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('conectado=google');
     expect(mockedService.handleGoogleCallback).toHaveBeenCalledWith('xyz789', 'user-1');
   });
 
-  it('retorna 400 quando callback retorna erro do Google', async () => {
-    const token = makeToken('user-1');
+  it('redireciona com erro quando callback retorna erro do Google', async () => {
+    const state = makeToken('user-1');
     const res = await request(app)
-      .get('/integracoes/google/callback?error=access_denied')
-      .set('Authorization', `Bearer ${token}`);
+      .get(`/integracoes/google/callback?error=access_denied&state=${state}`);
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('erro=google');
   });
 });
 

@@ -26,31 +26,32 @@ export function Sidebar() {
   }
 
   return (
-    <aside style={styles.sidebar}>
-      <div style={styles.logoWrap}>
+    <aside className="app-sidebar" style={styles.sidebar}>
+      <div className="sidebar-logo" style={styles.logoWrap}>
         <Logo variant="full" theme="light" height={36} />
       </div>
 
-      <nav style={styles.nav}>
+      <nav className="sidebar-nav" style={styles.nav}>
         {navItems.map((item) => {
           const active = location.pathname === item.path;
           return (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
+              className="sidebar-nav-item"
               style={{
                 ...styles.navItem,
                 ...(active ? styles.navItemActive : {}),
               }}
             >
-              <span style={styles.navIcon}>{item.icon}</span>
+              <span className="sidebar-nav-icon" style={styles.navIcon}>{item.icon}</span>
               {item.label}
             </button>
           );
         })}
       </nav>
 
-      <div style={styles.footer}>
+      <div className="sidebar-footer" style={styles.footer}>
         <div style={styles.userInfo}>
           <div style={styles.avatar}>
             {user?.nome?.charAt(0).toUpperCase()}
