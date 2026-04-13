@@ -27,7 +27,8 @@ Plataforma SaaS com IA para gerenciar campanhas no Meta Ads e Google Ads. Gera e
 |---|---|
 | Frontend | React |
 | Backend | Node.js + Express |
-| Testes | Jest |
+| Testes backend | Jest + ts-jest |
+| Testes frontend | Vitest + @testing-library/react |
 | Banco de dados | PostgreSQL (Supabase) |
 | ORM | Prisma |
 | IA estratégia/otimização | OpenAI gpt-4o-mini |
@@ -316,6 +317,28 @@ Usuário → Dashboard → Meta/Google Ads API (direto, usa account_id salvo)
 
 ---
 
+## Estratégia de Testes
+
+### Backend (Jest + ts-jest)
+- **Routes**: mocks do service com `jest.mock('../service')` + supertest — padrão em `src/modules/**/__tests__/*.routes.test.ts`
+- **Services**: mocks do Prisma com `jest.mock('../../lib/prisma')` — padrão em `src/modules/**/__tests__/*.service.test.ts`
+- **Queue/Scheduler**: mock de `bullmq` e do Prisma — padrão em `src/queue/__tests__/*.test.ts`
+- **Token de teste**: `jwt.sign({ userId }, process.env.JWT_SECRET || 'test_secret')`
+- **Erros tipados**: services lançam `Error` com `err.name = 'NOT_FOUND' | 'FORBIDDEN' | ...` — testar com `rejects.toMatchObject({ name: '...' })`
+
+### Frontend (Vitest + @testing-library/react)
+- **Hooks**: `vi.mock('@/lib/api')` + `renderHook` + `waitFor`
+- **Componentes UI**: `render` + `screen` + `userEvent` — sem checar estilos inline com `toHaveStyle` (não funciona bem com jsdom); usar `el.getAttribute('style').toContain(...)` quando precisar
+- **Páginas com router**: envolver em `<MemoryRouter>` + `<AuthProvider>`; mockar `useNavigate` com `vi.mock('react-router-dom', ...)`
+- **Páginas com AppLayout/Sidebar**: mockar `useAuth` com `vi.mock('@/contexts/AuthContext', ...)`
+- **AuthContext**: testar erro "fora do provider" suprimindo `console.error` com `vi.spyOn(console, 'error').mockImplementation(() => {})`
+- **Path alias `@/`**: configurado no `vitest.config.ts` via `resolve.alias: { '@': resolve(__dirname, 'src') }`
+
+### Falhas pré-existentes conhecidas
+- `integracoes.routes.test.ts` — 6 testes de callback OAuth falham porque o teste envia `Authorization` header, mas callbacks OAuth recebem JWT via `state` param (sem header). Esses testes precisam ser reescritos para usar `?state=<jwt>` na URL.
+
+---
+
 ## O que NÃO fazer
 
 - ❌ Não usar Next.js no backend
@@ -325,7 +348,9 @@ Usuário → Dashboard → Meta/Google Ads API (direto, usa account_id salvo)
 - ❌ Não extrair microserviços prematuramente
 - ❌ Não usar `pg` diretamente — usar Prisma
 - ❌ Não processar jobs de IA de forma síncrona no request do usuário
-- ❌ Não criar funções sem testes — toda função nova deve ter teste correspondente
+- ❌ Não criar funções sem testes — toda função nova deve ter teste correspondente (backend: service + route; frontend: hook + componente)
+- ❌ Não usar `toHaveStyle` do jest-dom para checar estilos inline React no jsdom — usar `element.getAttribute('style').toContain(...)`
+- ❌ Não usar `expect(() => render(...)).toThrow()` para erros de render do React sem suprimir `console.error` primeiro
 - ❌ Não usar `prisma migrate dev` (requer terminal interativo) — usar `prisma db push`
 - ❌ Não deixar o prompt do Ideogram no frontend — o backend monta o prompt completo
 - ❌ Não usar authMiddleware nos callbacks OAuth — eles recebem redirect do browser sem header JWT
