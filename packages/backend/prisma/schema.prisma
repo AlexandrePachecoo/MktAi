@@ -24,10 +24,12 @@ model Campanha {
   user_id      String
   nome         String
   descricao    String
+  objetivo     String?
   publico_alvo String
   orcamento    Float
   plataforma   String
   status       String   @default("ativa")
+  estrategia   Json?
   created_at   DateTime @default(now())
 
   user      User       @relation(fields: [user_id], references: [id])
@@ -67,6 +69,9 @@ model Integracao {
   access_token  String
   refresh_token String?
   expires_at    DateTime?
+  account_id    String?
 
   user User @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, plataforma])
 }

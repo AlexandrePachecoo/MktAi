@@ -1,0 +1,16 @@
+<svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Syne:wght@800&display=swap');
+    </style>
+  </defs>
+  <text
+    x="0"
+    y="48"
+    font-family="Syne, sans-serif"
+    font-weight="800"
+    font-size="52"
+    letter-spacing="-2"
+    fill="#1a1208"
+  >faro<tspan fill="#e85d26">.</tspan></text>
+</svg>

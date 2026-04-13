@@ -1,0 +1,42 @@
+/* faro. Design System — Tokens */
+
+:root {
+  /* Cores base (Ember é igual nos dois modos) */
+  --color-ember: #e85d26;
+  --color-deep-ember: #c94d1e;
+
+  /* Light Mode (default) */
+  --color-bg: #f5f2ec;
+  --color-bg-card: #ffffff;
+  --color-border: #ede7de;
+  --color-border-subtle: #e8e0d4;
+  --color-text-primary: #1a1208;
+  --color-text-muted: #999999;
+  --color-progress-track: #f0ebe3;
+
+  /* Tipografia */
+  --font-display: 'Syne', sans-serif;
+  --font-ui: 'DM Mono', monospace;
+
+  /* Bordas */
+  --radius-btn: 8px;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+
+  /* Sombras */
+  --shadow-card: 0 1px 3px rgba(26, 18, 8, 0.06), 0 1px 2px rgba(26, 18, 8, 0.04);
+  --shadow-modal: 0 8px 32px rgba(26, 18, 8, 0.12);
+}
+
+[data-theme='dark'] {
+  --color-bg: #0f0d09;
+  --color-bg-card: #16120b;
+  --color-border: #2a2215;
+  --color-border-subtle: #1e1a12;
+  --color-text-primary: #f0ead8;
+  --color-text-muted: #4a4030;
+  --color-progress-track: #2a2215;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
