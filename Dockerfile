@@ -13,7 +13,7 @@ COPY packages/backend ./packages/backend
 COPY packages/frontend ./packages/frontend
 
 # Build backend
-RUN cd packages/backend && npm run build
+RUN cd packages/backend && npx prisma generate && npm run build
 
 # Build frontend
 RUN cd packages/frontend && npm run build

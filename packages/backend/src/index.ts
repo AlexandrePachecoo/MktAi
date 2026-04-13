@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes';
 import integracoesRoutes from './modules/integracoes/integracoes.routes';
 import campanhasRoutes from './modules/campanhas/campanhas.routes';
@@ -9,8 +10,9 @@ import './queue/optimization.worker';
 import { iniciarScheduler } from './queue/optimization.scheduler';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
+app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
