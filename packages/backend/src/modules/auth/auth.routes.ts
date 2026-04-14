@@ -18,6 +18,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ error: 'Email já cadastrado' });
       return;
     }
+    console.error('[register error]', err);
     res.status(500).json({ error: 'Erro interno' });
   }
 });
@@ -41,6 +42,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       res.status(401).json({ error: 'Senha inválida' });
       return;
     }
+    console.error('[login error]', err);
     res.status(500).json({ error: 'Erro interno' });
   }
 });
