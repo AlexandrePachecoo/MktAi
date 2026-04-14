@@ -26,6 +26,40 @@
   /* Sombras */
   --shadow-card: 0 1px 3px rgba(26, 18, 8, 0.06), 0 1px 2px rgba(26, 18, 8, 0.04);
   --shadow-modal: 0 8px 32px rgba(26, 18, 8, 0.12);
+
+  /* ─── Landing page tokens (light) ─── */
+  --bg:           #f5f2ec;
+  --bg-card:      #ffffff;
+  --bg-cta:       #1a1208;
+  --text-primary: #1a1208;
+  --text-muted:   #888880;
+  --border:       #ede7de;
+  --border-div:   #e8e0d4;
+  --progress-trk: #f0ebe3;
+  --btn-bg:       #1a1208;
+  --btn-txt:      #f5f2ec;
+  --btn-sec-brd:  rgba(232,93,38,0.3);
+  --btn-sec-txt:  #e85d26;
+  --logo-body:    #1a1208;
+}
+
+/* ─── Landing page tokens (dark — via OS preference) ─── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:           #0f0d09;
+    --bg-card:      #16120b;
+    --bg-cta:       #16120b;
+    --text-primary: #f0ead8;
+    --text-muted:   #6a6050;
+    --border:       #2a2215;
+    --border-div:   #1e1a12;
+    --progress-trk: #2a2215;
+    --btn-bg:       #e85d26;
+    --btn-txt:      #0f0d09;
+    --btn-sec-brd:  #2a2215;
+    --btn-sec-txt:  #f0ead8;
+    --logo-body:    #f0ead8;
+  }
 }
 
 [data-theme='dark'] {

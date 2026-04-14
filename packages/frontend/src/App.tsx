@@ -8,6 +8,12 @@ import { CampanhasPage } from '@/pages/CampanhasPage';
 import { NovaCampanhaPage } from '@/pages/NovaCampanhaPage';
 import { CampanhaDetailPage } from '@/pages/CampanhaDetailPage';
 import { IntegracoesPage } from '@/pages/IntegracoesPage';
+import { LandingPage } from '@/pages/LandingPage';
+
+function LandingRoute({ children }: { children: React.ReactNode }) {
+  const { token } = useAuth();
+  return token ? <Navigate to="/dashboard" replace /> : <>{children}</>;
+}
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();
@@ -22,6 +28,14 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
+      <Route
+        path="/"
+        element={
+          <LandingRoute>
+            <LandingPage />
+          </LandingRoute>
+        }
+      />
       <Route
         path="/login"
         element={
