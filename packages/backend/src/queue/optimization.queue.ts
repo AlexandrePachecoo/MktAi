@@ -1,9 +1,7 @@
 import { Queue } from 'bullmq';
+import { getRedisConnection } from '../lib/redis';
 
-const connection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: Number(process.env.REDIS_PORT) || 6379,
-};
+const connection = getRedisConnection();
 
 // Fila responsável por otimizar campanhas ativas
 export const optimizationQueue = new Queue('optimization', { connection });

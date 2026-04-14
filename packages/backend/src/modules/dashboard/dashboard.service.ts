@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { prisma } from '../../lib/prisma';
+import { getValidToken } from '../integracoes/integracoes.service';
 
 export interface MetricasMeta {
   plataforma: 'meta';
@@ -122,7 +123,8 @@ export async function buscarDashboard(campanhaId: string, userId: string) {
       resultados['meta'] = { erro: 'Conta de anúncios do Meta não configurada' };
     } else {
       try {
-        resultados['meta'] = await buscarMetricasMeta(integ.account_id, integ.access_token);
+        const token = await getValidToken(userId, 'meta');
+        resultados['meta'] = await buscarMetricasMeta(integ.account_id, token);
       } catch {
         resultados['meta'] = { erro: 'Erro ao buscar métricas do Meta' };
       }
@@ -137,7 +139,8 @@ export async function buscarDashboard(campanhaId: string, userId: string) {
       resultados['google'] = { erro: 'Customer ID do Google Ads não configurado' };
     } else {
       try {
-        resultados['google'] = await buscarMetricasGoogle(integ.account_id, integ.access_token);
+        const token = await getValidToken(userId, 'google');
+        resultados['google'] = await buscarMetricasGoogle(integ.account_id, token);
       } catch {
         resultados['google'] = { erro: 'Erro ao buscar métricas do Google' };
       }

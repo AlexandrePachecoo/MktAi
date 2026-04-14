@@ -1,6 +1,67 @@
 import axios from 'axios';
 import { prisma } from '../../lib/prisma';
 
+// ─── Token refresh ────────────────────────────────────────────────────────────
+
+async function refreshGoogleToken(integracao: { user_id: string; refresh_token: string | null }) {
+  if (!integracao.refresh_token) throw new Error('Google: refresh_token não disponível');
+
+  const { data } = await axios.post('https://oauth2.googleapis.com/token', {
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    client_secret: process.env.GOOGLE_CLIENT_SECRET,
+    refresh_token: integracao.refresh_token,
+    grant_type: 'refresh_token',
+  });
+
+  const { access_token, expires_in } = data;
+  const expires_at = expires_in ? new Date(Date.now() + expires_in * 1000) : null;
+
+  await prisma.integracao.update({
+    where: { user_id_plataforma: { user_id: integracao.user_id, plataforma: 'google' } },
+    data: { access_token, expires_at },
+  });
+
+  return access_token as string;
+}
+
+async function refreshMetaToken(integracao: { user_id: string; access_token: string }) {
+  const { data } = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
+    params: {
+      grant_type: 'fb_exchange_token',
+      client_id: process.env.META_APP_ID,
+      client_secret: process.env.META_APP_SECRET,
+      fb_exchange_token: integracao.access_token,
+    },
+  });
+
+  const { access_token, expires_in } = data;
+  const expires_at = expires_in ? new Date(Date.now() + expires_in * 1000) : null;
+
+  await prisma.integracao.update({
+    where: { user_id_plataforma: { user_id: integracao.user_id, plataforma: 'meta' } },
+    data: { access_token, expires_at },
+  });
+
+  return access_token as string;
+}
+
+export async function getValidToken(userId: string, plataforma: 'meta' | 'google'): Promise<string> {
+  const integracao = await prisma.integracao.findUnique({
+    where: { user_id_plataforma: { user_id: userId, plataforma } },
+  });
+
+  if (!integracao) throw new Error(`${plataforma} não conectado`);
+
+  const expiraEm5Min = integracao.expires_at
+    ? integracao.expires_at.getTime() - Date.now() < 5 * 60 * 1000
+    : false;
+
+  if (!expiraEm5Min) return integracao.access_token;
+
+  if (plataforma === 'google') return refreshGoogleToken(integracao);
+  return refreshMetaToken(integracao);
+}
+
 // ─── Meta ────────────────────────────────────────────────────────────────────
 
 export function getMetaAuthUrl(token: string): string {
@@ -77,10 +138,7 @@ export async function salvarAccountId(userId: string, plataforma: string, accoun
 }
 
 export async function buscarContasGoogle(userId: string): Promise<{ id: string; name: string }[]> {
-  const integracao = await prisma.integracao.findUnique({
-    where: { user_id_plataforma: { user_id: userId, plataforma: 'google' } },
-  });
-  if (!integracao) throw new Error('Google não conectado');
+  const access_token = await getValidToken(userId, 'google');
 
   const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
   if (!developerToken) throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN não configurado no .env');
@@ -90,7 +148,7 @@ export async function buscarContasGoogle(userId: string): Promise<{ id: string; 
       'https://googleads.googleapis.com/v20/customers:listAccessibleCustomers',
       {
         headers: {
-          Authorization: `Bearer ${integracao.access_token}`,
+          Authorization: `Bearer ${access_token}`,
           'developer-token': developerToken,
         },
       }
@@ -110,7 +168,7 @@ export async function buscarContasGoogle(userId: string): Promise<{ id: string; 
             { query: 'SELECT customer.id, customer.descriptive_name FROM customer LIMIT 1' },
             {
               headers: {
-                Authorization: `Bearer ${integracao.access_token}`,
+                Authorization: `Bearer ${access_token}`,
                 'developer-token': developerToken,
               },
             }
@@ -134,15 +192,12 @@ export async function buscarContasGoogle(userId: string): Promise<{ id: string; 
 }
 
 export async function buscarContasMeta(userId: string): Promise<{ id: string; name: string }[]> {
-  const integracao = await prisma.integracao.findUnique({
-    where: { user_id_plataforma: { user_id: userId, plataforma: 'meta' } },
-  });
-  if (!integracao) throw new Error('Meta não conectado');
+  const access_token = await getValidToken(userId, 'meta');
 
   const { data } = await axios.get('https://graph.facebook.com/v19.0/me/adaccounts', {
     params: {
       fields: 'id,name,account_status',
-      access_token: integracao.access_token,
+      access_token,
     },
   });
 

@@ -33,8 +33,10 @@ COPY packages/backend/prisma ./packages/backend/prisma
 
 WORKDIR /app/packages/backend
 
+RUN npx prisma generate
+
 ENV NODE_ENV=production
 
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss --skip-generate && node dist/index.js"]

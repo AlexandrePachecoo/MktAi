@@ -1,11 +1,9 @@
 import { Worker, Job } from 'bullmq';
 import { prisma } from '../lib/prisma';
 import OpenAI from 'openai';
+import { getRedisConnection } from '../lib/redis';
 
-const connection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: Number(process.env.REDIS_PORT) || 6379,
-};
+const connection = getRedisConnection();
 
 function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
