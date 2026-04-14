@@ -5,18 +5,13 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY packages/backend/package.json ./packages/backend/
-COPY packages/frontend/package.json ./packages/frontend/
 
-RUN npm ci
+RUN npm ci --workspace=packages/backend
 
 COPY packages/backend ./packages/backend
-COPY packages/frontend ./packages/frontend
 
 # Build backend
 RUN cd packages/backend && npx prisma generate && npm run build
-
-# Build frontend
-RUN cd packages/frontend && npm run build
 
 # ─── Stage 2: Backend production image ─────────────────────────────────────────
 FROM node:20-alpine AS backend
