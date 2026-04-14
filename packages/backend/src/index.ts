@@ -32,13 +32,13 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.use('/auth', authLimiter, authRoutes);
-app.use('/integracoes', integracoesRoutes);
-app.use('/campanhas', campanhasRoutes);
-app.use('/upload', criativosRoutes);
-app.use('/campanhas', criativosRoutes);
-app.use('/campanhas/:campanhaId/testes-ab', testesAbRoutes);
-app.use('/dashboard', dashboardRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/integracoes', integracoesRoutes);
+app.use('/api/campanhas', campanhasRoutes);
+app.use('/api/upload', criativosRoutes);
+app.use('/api/campanhas', criativosRoutes);
+app.use('/api/campanhas/:campanhaId/testes-ab', testesAbRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Rota não encontrada' });
