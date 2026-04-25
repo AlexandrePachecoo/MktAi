@@ -9,6 +9,7 @@ import campanhasRoutes from './modules/campanhas/campanhas.routes';
 import criativosRoutes from './modules/criativos/criativos.routes';
 import testesAbRoutes from './modules/testes-ab/testes-ab.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
+import pagamentosRoutes from './modules/pagamentos/pagamentos.routes';
 import './queue/optimization.worker';
 import { iniciarScheduler } from './queue/optimization.scheduler';
 
@@ -40,6 +41,7 @@ app.use('/api/upload', criativosRoutes);
 app.use('/api/campanhas', criativosRoutes);
 app.use('/api/campanhas/:campanhaId/testes-ab', testesAbRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/pagamentos', pagamentosRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Rota não encontrada' });
