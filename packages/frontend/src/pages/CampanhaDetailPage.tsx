@@ -283,7 +283,7 @@ export function CampanhaDetailPage() {
   return (
     <AppLayout>
       {/* ── Header ── */}
-      <div style={styles.header}>
+      <div style={styles.header} className="detail-page-header">
         <div style={styles.headerLeft}>
           <button style={styles.backBtn} onClick={() => navigate('/campanhas')}>
             ← Campanhas
@@ -306,7 +306,7 @@ export function CampanhaDetailPage() {
           </p>
         </div>
 
-        <div style={styles.headerActions}>
+        <div style={styles.headerActions} className="detail-header-actions">
           {['meta', 'ambos'].includes(campanha.plataforma) && (
             campanha.meta_campaign_id ? (
               <span style={styles.metaBadgeOk}>
@@ -478,7 +478,7 @@ export function CampanhaDetailPage() {
       <Card style={styles.section}>
         <div style={styles.sectionHeader}>
           <p style={styles.sectionTitle}>Criativos</p>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px' }} className="criativos-actions">
             <Button
               variant="secondary"
               size="sm"

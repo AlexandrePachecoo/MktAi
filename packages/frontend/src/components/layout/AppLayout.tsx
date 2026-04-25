@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
+import { Logo } from '@/components/ui';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,9 @@ export function AppLayout({ children }: AppLayoutProps) {
           >
             ☰
           </button>
+          <div className="mobile-logo">
+            <Logo variant="full" theme="light" height={28} />
+          </div>
         </div>
         <div className="page-content">
           {children}

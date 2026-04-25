@@ -78,7 +78,7 @@ function CampanhaRow({ campanha }: { campanha: Campanha }) {
 
   return (
     <Card style={styles.row}>
-      <div style={styles.rowMain}>
+      <div style={styles.rowMain} className="campanha-row-main">
         <div style={styles.rowInfo}>
           <div style={styles.rowTop}>
             <span style={styles.rowNome}>{campanha.nome}</span>
@@ -115,13 +115,6 @@ function CampanhaRow({ campanha }: { campanha: Campanha }) {
             onClick={() => navigate(`/campanhas/${campanha.id}`)}
           >
             Ver detalhes
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(`/dashboard?campanha=${campanha.id}`)}
-          >
-            Métricas
           </Button>
         </div>
       </div>

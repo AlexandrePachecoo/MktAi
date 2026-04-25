@@ -4,7 +4,8 @@
 
 .sidebar-close,
 .mobile-header,
-.sidebar-toggle {
+.sidebar-toggle,
+.mobile-logo {
   display: none;
 }
 
@@ -52,6 +53,15 @@
     color: var(--color-text-primary);
     padding: 6px 10px;
     line-height: 1;
+    flex-shrink: 0;
+  }
+
+  /* ─── Logo no header mobile ──────────────────────────────────────────── */
+
+  .mobile-logo {
+    display: flex;
+    align-items: center;
+    margin-left: 12px;
   }
 
   /* ─── Page content padding ───────────────────────────────────────────── */
@@ -128,5 +138,28 @@
 
   .form-row {
     flex-direction: column !important;
+  }
+
+  /* ─── Campanha detalhe — header wraps on mobile ──────────────────────── */
+
+  .detail-page-header {
+    flex-wrap: wrap !important;
+  }
+
+  .detail-header-actions {
+    padding-top: 0 !important;
+    flex-wrap: wrap !important;
+  }
+
+  /* ─── Campanha detalhe — criativos buttons wrap ──────────────────────── */
+
+  .criativos-actions {
+    flex-wrap: wrap !important;
+  }
+
+  /* ─── Campanhas lista — row wraps on mobile ──────────────────────────── */
+
+  .campanha-row-main {
+    flex-wrap: wrap !important;
   }
 }
