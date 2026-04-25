@@ -19,7 +19,20 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 app.use(helmet());
 app.use(morgan('combined'));
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+const allowedOrigins = (process.env.FRONTEND_URL ?? '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      cb(new Error(`CORS: origin não permitida — ${origin}`));
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 const authLimiter = rateLimit({
