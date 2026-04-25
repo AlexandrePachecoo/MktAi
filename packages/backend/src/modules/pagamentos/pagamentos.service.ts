@@ -86,26 +86,44 @@ export async function criarCheckout(userId: string, planoSlug: string): Promise<
 
 interface AbacatePayWebhookPayload {
   event: string;
-  data?: {
-    products?: Array<{ externalId?: string }>;
-    status?: string;
-  };
+  data?: Record<string, unknown>;
+}
+
+function extrairExternalId(data: Record<string, unknown> | undefined): string | null {
+  if (!data) return null;
+  if (typeof data.externalId === 'string') return data.externalId;
+  const nested = data.checkout ?? data.billing ?? data.subscription;
+  if (nested && typeof nested === 'object') {
+    const n = nested as Record<string, unknown>;
+    if (typeof n.externalId === 'string') return n.externalId;
+  }
+  return null;
 }
 
 export async function processarWebhook(payload: AbacatePayWebhookPayload): Promise<void> {
-  if (payload.event !== 'BILLING_PAID') return;
+  const { event, data } = payload;
 
-  const externalId = payload.data?.products?.[0]?.externalId;
-  if (!externalId) return;
+  if (event === 'checkout.completed' || event === 'subscription.renewed') {
+    const externalId = extrairExternalId(data);
+    if (!externalId) return;
 
-  const [userId, planoSlug] = externalId.split(':');
-  if (!userId || !planoSlug) return;
+    const [userId, planoSlug] = externalId.split(':');
+    if (!userId || !planoSlug) return;
 
-  const planoValido = PLANOS.find((p) => p.slug === planoSlug);
-  if (!planoValido) return;
+    const planoValido = PLANOS.find((p) => p.slug === planoSlug);
+    if (!planoValido) return;
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { plano: planoSlug },
-  });
+    await prisma.user.update({ where: { id: userId }, data: { plano: planoSlug } });
+    return;
+  }
+
+  if (event === 'subscription.cancelled') {
+    const externalId = extrairExternalId(data);
+    if (!externalId) return;
+
+    const [userId] = externalId.split(':');
+    if (!userId) return;
+
+    await prisma.user.update({ where: { id: userId }, data: { plano: 'free' } });
+  }
 }
