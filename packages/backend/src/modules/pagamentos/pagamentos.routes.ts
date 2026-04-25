@@ -26,7 +26,10 @@ router.post('/checkout', authMiddleware as any, async (req: Request, res: Respon
 router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
   const secret = process.env.ABACATEPAY_WEBHOOK_SECRET;
   if (secret) {
-    const token = (req.query.token as string) ?? req.headers['x-abacatepay-token'];
+    const token =
+      (req.headers['x-webhook-token'] as string) ??
+      (req.headers['x-abacatepay-token'] as string) ??
+      (req.query.token as string);
     if (token !== secret) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
