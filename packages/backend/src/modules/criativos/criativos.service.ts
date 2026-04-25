@@ -266,7 +266,7 @@ export async function gerarCriativoIA(
     n: 1,
   });
 
-  const b64 = generateRes.data[0]?.b64_json;
+  const b64 = generateRes.data?.[0]?.b64_json;
   if (!b64) throw new Error('GPT Image não retornou imagem');
   let imageBuffer: Buffer = Buffer.from(b64, 'base64');
 
