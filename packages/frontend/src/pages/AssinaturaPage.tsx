@@ -117,14 +117,14 @@ export function AssinaturaPage() {
                   </ul>
 
                   <button
-                    onClick={() => !ativo && plano.slug !== 'free' && handleAssinar(plano.slug)}
-                    disabled={ativo || plano.slug === 'free' || assinando !== null}
+                    onClick={() => !ativo && handleAssinar(plano.slug)}
+                    disabled={ativo || assinando !== null}
                     style={{
                       marginTop: 'auto',
                       padding: '12px 0',
                       borderRadius: 'var(--radius-btn)',
                       border: 'none',
-                      cursor: ativo || plano.slug === 'free' ? 'default' : 'pointer',
+                      cursor: ativo ? 'default' : 'pointer',
                       background: ativo
                         ? 'var(--color-border)'
                         : isPro
@@ -138,8 +138,6 @@ export function AssinaturaPage() {
                   >
                     {ativo
                       ? 'Plano atual'
-                      : plano.slug === 'free'
-                      ? 'Gratuito'
                       : assinando === plano.slug
                       ? 'Redirecionando...'
                       : `Assinar ${plano.nome}`}
