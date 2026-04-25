@@ -68,6 +68,14 @@ const PLATAFORMA_COLOR: Record<string, string> = {
   ambos:  '#e85d26',
 };
 
+const PALETAS_PREDEFINIDAS = [
+  { id: 'quente',   nome: 'Quente',   cores: ['#E85D26', '#F4A261', '#FECAA0'] },
+  { id: 'frio',     nome: 'Frio',     cores: ['#1D3557', '#457B9D', '#A8DADC'] },
+  { id: 'luxo',     nome: 'Luxo',     cores: ['#1A1208', '#C9B458', '#F5F2EC'] },
+  { id: 'natureza', nome: 'Natureza', cores: ['#2D6A4F', '#52B788', '#D8F3DC'] },
+  { id: 'roxo',     nome: 'Roxo',     cores: ['#6B21A8', '#9333EA', '#E9D5FF'] },
+  { id: 'neutro',   nome: 'Neutro',   cores: ['#1C1917', '#78716C', '#F5F5F4'] },
+];
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -99,6 +107,12 @@ export function CampanhaDetailPage() {
   const [copyIndexSelecionada, setCopyIndexSelecionada] = useState<number | null>(null);
   const [gerandoCriativo, setGerandoCriativo] = useState(false);
   const [erroGerarIA, setErroGerarIA] = useState('');
+  const [paletaOpcao, setPaletaOpcao] = useState<string>('nenhuma');
+  const [corCustom1, setCorCustom1] = useState('#e85d26');
+  const [corCustom2, setCorCustom2] = useState('#f4a261');
+  const [corCustom3, setCorCustom3] = useState('#fecaa0');
+  const [imagemRefUrl, setImagemRefUrl] = useState<string | null>(null);
+  const [uploadandoRef, setUploadandoRef] = useState(false);
   const [mostrarModalPublicar, setMostrarModalPublicar] = useState(false);
   const [criativoParaMeta, setCriativoParaMeta] = useState<string>('');
   const [copyParaMeta, setCopyParaMeta] = useState<number | null>(null);
@@ -179,19 +193,48 @@ export function CampanhaDetailPage() {
     }
   }
 
+  async function handleImagemRefSelecionada(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+    e.target.value = '';
+    setUploadandoRef(true);
+    try {
+      const formData = new FormData();
+      formData.append('imagem', arquivo);
+      const { url } = await api.upload<{ url: string }>('/upload/upload', formData);
+      setImagemRefUrl(url);
+    } catch (err) {
+      console.error('Erro ao fazer upload da referência:', err);
+    } finally {
+      setUploadandoRef(false);
+    }
+  }
+
   async function gerarCriativoIA() {
     if (!id) return;
     setGerandoCriativo(true);
     setErroGerarIA('');
+
+    const paletaCores =
+      paletaOpcao === 'nenhuma'
+        ? undefined
+        : paletaOpcao === 'personalizada'
+          ? [corCustom1, corCustom2, corCustom3]
+          : PALETAS_PREDEFINIDAS.find(p => p.id === paletaOpcao)?.cores;
+
     try {
       await api.post(`/campanhas/${id}/criativos/gerar`, {
         copy_index: copyIndexSelecionada ?? undefined,
         extra: extraIA.trim() || undefined,
+        paleta_cores: paletaCores,
+        referencia_url: imagemRefUrl ?? undefined,
       });
       await recarregarCriativos();
       setMostrarGerarIA(false);
       setExtraIA('');
       setCopyIndexSelecionada(null);
+      setPaletaOpcao('nenhuma');
+      setImagemRefUrl(null);
     } catch (err) {
       setErroGerarIA(err instanceof Error ? err.message : 'Erro ao gerar criativo');
     } finally {
@@ -482,7 +525,7 @@ export function CampanhaDetailPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => { setMostrarGerarIA(v => !v); setErroGerarIA(''); setExtraIA(''); setCopyIndexSelecionada(null); }}
+              onClick={() => { setMostrarGerarIA(v => !v); setErroGerarIA(''); setExtraIA(''); setCopyIndexSelecionada(null); setPaletaOpcao('nenhuma'); setImagemRefUrl(null); }}
               disabled={gerandoCriativo || uploadando}
             >
               ✦ Gerar com IA
@@ -534,6 +577,101 @@ export function CampanhaDetailPage() {
                 </div>
               ) : null;
             })()}
+            {/* Color Palette */}
+            <div style={{ marginBottom: '16px' }}>
+              <p style={styles.gerarIALabel}>Palheta de cores (opcional):</p>
+              <div style={styles.paletaGrid}>
+                <button
+                  style={{ ...styles.paletaOpcaoBtn, ...(paletaOpcao === 'nenhuma' ? styles.paletaOpcaoBtnAtivo : {}) }}
+                  onClick={() => setPaletaOpcao('nenhuma')}
+                  type="button"
+                  disabled={gerandoCriativo}
+                >
+                  <span style={styles.paletaNenhuma}>Nenhuma</span>
+                </button>
+                {PALETAS_PREDEFINIDAS.map(p => (
+                  <button
+                    key={p.id}
+                    style={{ ...styles.paletaOpcaoBtn, ...(paletaOpcao === p.id ? styles.paletaOpcaoBtnAtivo : {}) }}
+                    onClick={() => setPaletaOpcao(p.id)}
+                    type="button"
+                    disabled={gerandoCriativo}
+                    title={p.nome}
+                  >
+                    <div style={styles.paletaSwatches}>
+                      {p.cores.map((cor, i) => (
+                        <span key={i} style={{ ...styles.palettaSwatch, background: cor }} />
+                      ))}
+                    </div>
+                    <span style={styles.paletaItemLabel}>{p.nome}</span>
+                  </button>
+                ))}
+                <button
+                  style={{ ...styles.paletaOpcaoBtn, ...(paletaOpcao === 'personalizada' ? styles.paletaOpcaoBtnAtivo : {}) }}
+                  onClick={() => setPaletaOpcao('personalizada')}
+                  type="button"
+                  disabled={gerandoCriativo}
+                >
+                  <span style={styles.paletaItemLabel}>Personalizada</span>
+                </button>
+              </div>
+              {paletaOpcao === 'personalizada' && (
+                <div style={styles.coresCustomRow}>
+                  {([
+                    [corCustom1, setCorCustom1],
+                    [corCustom2, setCorCustom2],
+                    [corCustom3, setCorCustom3],
+                  ] as const).map(([cor, setCor], i) => (
+                    <div key={i} style={styles.corCustomItem}>
+                      <input
+                        type="color"
+                        value={cor}
+                        onChange={e => (setCor as (v: string) => void)(e.target.value)}
+                        style={styles.colorPicker}
+                        disabled={gerandoCriativo}
+                      />
+                      <span style={styles.corCustomLabel}>{cor.toUpperCase()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Reference Image */}
+            <div style={{ marginBottom: '16px' }}>
+              <p style={styles.gerarIALabel}>Logo ou imagem do produto (opcional):</p>
+              {imagemRefUrl ? (
+                <div style={styles.refImagePreview}>
+                  <img src={imagemRefUrl} alt="Referência" style={styles.refImageImg} />
+                  <button
+                    style={styles.refImageRemove}
+                    onClick={() => setImagemRefUrl(null)}
+                    type="button"
+                    disabled={gerandoCriativo}
+                  >
+                    ✕ Remover
+                  </button>
+                </div>
+              ) : (
+                <button
+                  style={styles.refUploadBtn}
+                  onClick={() => document.getElementById('ref-imagem-input')?.click()}
+                  type="button"
+                  disabled={gerandoCriativo || uploadandoRef}
+                >
+                  {uploadandoRef ? 'Enviando...' : '+ Adicionar logo / imagem'}
+                </button>
+              )}
+              <input
+                id="ref-imagem-input"
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleImagemRefSelecionada}
+                disabled={gerandoCriativo || uploadandoRef}
+              />
+            </div>
+
             <p style={styles.gerarIALabel}>Observações adicionais (opcional):</p>
             <textarea
               value={extraIA}
@@ -1792,5 +1930,118 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '2px 6px',
     cursor: 'pointer',
     fontFamily: 'var(--font-ui)',
+  },
+
+  // Color Palette
+  paletaGrid: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: '6px',
+    marginTop: '4px',
+  },
+  paletaOpcaoBtn: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    gap: '4px',
+    padding: '7px 10px',
+    border: '1px solid var(--color-border)',
+    borderRadius: '8px',
+    background: 'var(--color-bg-card)',
+    cursor: 'pointer',
+  },
+  paletaOpcaoBtnAtivo: {
+    borderColor: 'var(--color-ember)',
+    boxShadow: '0 0 0 2px rgba(232,93,38,0.2)',
+  },
+  paletaSwatches: {
+    display: 'flex',
+    gap: '3px',
+  },
+  palettaSwatch: {
+    width: '14px',
+    height: '14px',
+    borderRadius: '50%',
+    border: '1px solid rgba(0,0,0,0.12)',
+    flexShrink: 0,
+  },
+  paletaItemLabel: {
+    fontSize: '11px',
+    fontWeight: 500,
+    color: 'var(--color-text-primary)',
+    fontFamily: 'var(--font-ui)',
+  },
+  paletaNenhuma: {
+    fontSize: '11px',
+    fontWeight: 500,
+    color: 'var(--color-text-muted)',
+    fontFamily: 'var(--font-ui)',
+    lineHeight: '22px',
+  },
+  coresCustomRow: {
+    display: 'flex',
+    gap: '16px',
+    marginTop: '10px',
+    flexWrap: 'wrap' as const,
+  },
+  corCustomItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  colorPicker: {
+    width: '36px',
+    height: '36px',
+    border: '1px solid var(--color-border)',
+    borderRadius: '6px',
+    padding: '2px',
+    cursor: 'pointer',
+    background: 'var(--color-bg-card)',
+  },
+  corCustomLabel: {
+    fontSize: '11px',
+    fontFamily: 'var(--font-ui)',
+    color: 'var(--color-text-muted)',
+    letterSpacing: '0.04em',
+  },
+
+  // Reference Image
+  refImagePreview: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginTop: '8px',
+  },
+  refImageImg: {
+    width: '60px',
+    height: '60px',
+    objectFit: 'contain' as const,
+    borderRadius: '6px',
+    border: '1px solid var(--color-border)',
+    background: 'var(--color-bg)',
+  },
+  refImageRemove: {
+    fontSize: '12px',
+    color: 'var(--color-text-muted)',
+    background: 'none',
+    border: '1px solid var(--color-border)',
+    borderRadius: '6px',
+    padding: '5px 10px',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-ui)',
+  },
+  refUploadBtn: {
+    marginTop: '6px',
+    fontSize: '12px',
+    color: 'var(--color-text-muted)',
+    background: 'var(--color-bg)',
+    border: '1px dashed var(--color-border)',
+    borderRadius: '8px',
+    padding: '10px 16px',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-ui)',
+    width: '100%',
+    textAlign: 'center' as const,
+    display: 'block',
   },
 };
