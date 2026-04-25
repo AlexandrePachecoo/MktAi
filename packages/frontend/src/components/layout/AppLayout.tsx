@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
 
 interface AppLayoutProps {
@@ -6,10 +6,28 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="app-root" style={styles.root}>
-      <Sidebar />
-      <main className="app-main" style={styles.main}>{children}</main>
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {sidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+      )}
+      <main className="app-main" style={styles.main}>
+        <div className="mobile-header">
+          <button
+            className="sidebar-toggle"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Abrir menu"
+          >
+            ☰
+          </button>
+        </div>
+        <div className="page-content">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
@@ -22,7 +40,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   main: {
     flex: 1,
-    padding: '32px',
     minWidth: 0,
   },
 };

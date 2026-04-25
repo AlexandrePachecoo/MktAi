@@ -1,83 +1,122 @@
-/* faro. — Mobile Responsive Styles (max-width: 768px) */
+/* faro. — Mobile Responsive Styles */
+
+/* ─── Default: hide mobile-only elements on desktop ─────────────────────── */
+
+.sidebar-close,
+.mobile-header,
+.sidebar-toggle {
+  display: none;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 199;
+}
+
+/* ─── Desktop: page-content padding ─────────────────────────────────────── */
+
+.page-content {
+  padding: 32px;
+}
+
+/* ─── Mobile (≤768px) ────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
 
-  /* ─── Layout principal ───────────────────────────────────────────────────── */
+  /* ─── Mobile header bar ──────────────────────────────────────────────── */
 
-  .app-root {
-    flex-direction: column !important;
-  }
-
-  .app-main {
-    padding: 20px 16px 80px 16px !important; /* espaço para o bottom nav */
-  }
-
-  /* ─── Sidebar → Bottom navigation bar ───────────────────────────────────── */
-
-  .app-sidebar {
-    width: 100% !important;
-    min-height: unset !important;
-    height: 64px;
-    flex-direction: row !important;
-    padding: 0 8px !important;
-    position: fixed !important;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 100;
-    border-right: none !important;
-    border-top: 1px solid var(--color-border);
+  .mobile-header {
+    display: flex;
     align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-card);
+    position: sticky;
+    top: 0;
+    z-index: 50;
   }
 
-  .sidebar-logo {
-    display: none !important;
-  }
+  /* ─── Hamburger button ───────────────────────────────────────────────── */
 
-  .sidebar-nav {
-    flex-direction: row !important;
-    flex: 1;
-    justify-content: space-around;
-    gap: 0 !important;
-  }
-
-  .sidebar-nav-item {
-    flex-direction: column !important;
-    gap: 2px !important;
-    padding: 8px 12px !important;
-    font-size: 10px !important;
+  .sidebar-toggle {
+    display: flex;
     align-items: center;
     justify-content: center;
+    background: none;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    color: var(--color-text-primary);
+    padding: 6px 10px;
+    line-height: 1;
   }
 
-  .sidebar-nav-icon {
-    font-size: 20px !important;
+  /* ─── Page content padding ───────────────────────────────────────────── */
+
+  .page-content {
+    padding: 20px 16px;
   }
 
-  .sidebar-footer {
-    display: none !important;
+  /* ─── Sidebar → Slide-in drawer from left ────────────────────────────── */
+
+  .app-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 260px !important;
+    height: 100vh !important;
+    min-height: unset !important;
+    z-index: 200 !important;
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    overflow-y: auto;
+    box-shadow: none;
   }
 
-  /* ─── Dashboard — KPI grid ───────────────────────────────────────────────── */
+  .app-sidebar.sidebar-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  /* ─── Sidebar close button ───────────────────────────────────────────── */
+
+  .sidebar-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    padding: 6px 8px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  /* ─── Dashboard — KPI grid ───────────────────────────────────────────── */
 
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 
-  /* ─── Dashboard — plataforma tabs ───────────────────────────────────────── */
+  /* ─── Dashboard — plataforma tabs ───────────────────────────────────── */
 
   .plataforma-tabs {
     flex-wrap: wrap;
   }
 
-  /* ─── Campanhas — lista ──────────────────────────────────────────────────── */
+  /* ─── Campanhas — lista ──────────────────────────────────────────────── */
 
   .campanhas-grid {
     grid-template-columns: 1fr !important;
   }
 
-  /* ─── Gráfico — margens ──────────────────────────────────────────────────── */
+  /* ─── Gráfico — margens ──────────────────────────────────────────────── */
 
   .chart-header {
     flex-direction: column !important;
@@ -85,7 +124,7 @@
     gap: 12px;
   }
 
-  /* ─── NovaCampanha / Forms ───────────────────────────────────────────────── */
+  /* ─── NovaCampanha / Forms ───────────────────────────────────────────── */
 
   .form-row {
     flex-direction: column !important;

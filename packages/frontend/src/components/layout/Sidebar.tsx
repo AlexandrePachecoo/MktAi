@@ -9,6 +9,11 @@ interface NavItem {
   icon: string;
 }
 
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
 const navItems: NavItem[] = [
   { label: 'Dashboard',    path: '/dashboard',    icon: '◈' },
   { label: 'Campanhas',    path: '/campanhas',    icon: '▤' },
@@ -21,7 +26,7 @@ const PLANO_LABEL: Record<string, string> = {
   pro: 'Pro',
 };
 
-export function Sidebar() {
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,10 +36,16 @@ export function Sidebar() {
     navigate('/login');
   }
 
+  function handleNav(path: string) {
+    navigate(path);
+    onClose?.();
+  }
+
   return (
-    <aside className="app-sidebar" style={styles.sidebar}>
+    <aside className={`app-sidebar${isOpen ? ' sidebar-open' : ''}`} style={styles.sidebar}>
       <div className="sidebar-logo" style={styles.logoWrap}>
         <Logo variant="full" theme="light" height={36} />
+        <button className="sidebar-close" onClick={onClose} aria-label="Fechar menu">✕</button>
       </div>
 
       <nav className="sidebar-nav" style={styles.nav}>
@@ -43,7 +54,7 @@ export function Sidebar() {
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => handleNav(item.path)}
               className="sidebar-nav-item"
               style={{
                 ...styles.navItem,
@@ -59,7 +70,7 @@ export function Sidebar() {
 
       {user?.plano === 'free' && (
         <button
-          onClick={() => navigate('/assinar')}
+          onClick={() => { navigate('/assinar'); onClose?.(); }}
           style={styles.upgradeBtn}
         >
           ✦ Fazer upgrade
@@ -103,6 +114,9 @@ const styles: Record<string, React.CSSProperties> = {
   logoWrap: {
     marginBottom: '32px',
     paddingLeft: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   nav: {
     display: 'flex',
