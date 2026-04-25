@@ -103,3 +103,7 @@ optimizationWorker.on('completed', (job) => {
 optimizationWorker.on('failed', (job, err) => {
   console.error(`[worker] Job ${job?.id} falhou:`, err.message);
 });
+
+optimizationWorker.on('error', (err) => {
+  console.error('[worker] Erro de conexão Redis:', err.message);
+});
