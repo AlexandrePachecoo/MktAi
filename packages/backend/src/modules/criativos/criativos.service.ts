@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import OpenAI, { toFile } from 'openai';
 import { supabase } from '../../lib/supabase';
 import { prisma } from '../../lib/prisma';
 import { getLimites, planLimitError } from '../../lib/planos';
@@ -28,11 +28,17 @@ function buildPrompt(
   },
   copy?: Copy,
   extra?: string,
+  paletaCores?: string[],
 ): string {
   const copyBlock = copy
     ? `\nAD COPY TO INCLUDE IN THE IMAGE:\nHeadline: "${copy.titulo}"\nBody: "${copy.texto}"`
     : '';
   const extraBlock = extra?.trim() ? `\nExtra instructions: ${extra.trim()}` : '';
+
+  const paletaBlock =
+    paletaCores && paletaCores.length > 0
+      ? `\nCOLOR PALETTE (mandatory):\nUse exclusively these colors as the dominant palette: ${paletaCores.join(', ')}\nApply them to backgrounds, typography, accents, shapes, and all visual elements.`
+      : '';
 
   const platformLabel =
     campanha.plataforma === 'meta'
@@ -50,6 +56,7 @@ OBJECTIVE: ${campanha.objetivo || 'conversão'}
 TARGET AUDIENCE: ${campanha.publico_alvo}
 PLATFORM: ${platformLabel}
 ${copyBlock}
+${paletaBlock}
 
 DESIGN REQUIREMENTS:
 - High-end advertising agency quality
@@ -65,6 +72,13 @@ ${extraBlock}
 `.trim();
 }
 
+async function fetchImageBuffer(url: string): Promise<Buffer> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Falha ao buscar imagem de referência: ${response.statusText}`);
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
 async function contarCriativosDoUsuario(userId: string): Promise<number> {
   const campanhas = await prisma.campanha.findMany({
     where: { user_id: userId },
@@ -77,7 +91,7 @@ async function contarCriativosDoUsuario(userId: string): Promise<number> {
 export async function gerarCriativoIA(
   campanhaId: string,
   userId: string,
-  options: { copyIndex?: number; extra?: string },
+  options: { copyIndex?: number; extra?: string; paletaCores?: string[]; referenciaUrl?: string },
 ) {
   const campanha = await prisma.campanha.findUnique({ where: { id: campanhaId } });
 
@@ -107,15 +121,33 @@ export async function gerarCriativoIA(
     options.copyIndex != null ? estrategia?.copies?.[options.copyIndex] : undefined;
 
   const openai = getOpenAI();
-  const generateRes = await openai.images.generate({
-    model: 'chatgpt-image-latest',
-    prompt: buildPrompt(campanha, copy, options.extra),
-    quality: 'high',
-    size: '1024x1024',
-    n: 1,
-  });
+  const prompt = buildPrompt(campanha, copy, options.extra, options.paletaCores);
 
-  const b64 = generateRes.data?.[0]?.b64_json;
+  let b64: string | undefined;
+
+  if (options.referenciaUrl) {
+    const refBuffer = await fetchImageBuffer(options.referenciaUrl);
+    const refFile = await toFile(refBuffer, 'referencia.png', { type: 'image/png' });
+    const editRes = await openai.images.edit({
+      model: 'gpt-image-1',
+      image: refFile,
+      prompt,
+      size: '1024x1024',
+      quality: 'high',
+      n: 1,
+    });
+    b64 = editRes.data?.[0]?.b64_json;
+  } else {
+    const generateRes = await openai.images.generate({
+      model: 'chatgpt-image-latest',
+      prompt,
+      quality: 'high',
+      size: '1024x1024',
+      n: 1,
+    });
+    b64 = generateRes.data?.[0]?.b64_json;
+  }
+
   if (!b64) throw new Error('GPT Image não retornou imagem');
   const imageBuffer = Buffer.from(b64, 'base64');
 
