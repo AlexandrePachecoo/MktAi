@@ -14,6 +14,9 @@ const campanhas: Campanha[] = [
     plataforma: 'meta',
     status: 'ativa',
     estrategia: null,
+    meta_campaign_id: null,
+    meta_adset_id: null,
+    google_campaign_id: null,
     created_at: '2024-01-01T00:00:00Z',
   },
   {
@@ -26,6 +29,9 @@ const campanhas: Campanha[] = [
     plataforma: 'google',
     status: 'pausada',
     estrategia: null,
+    meta_campaign_id: null,
+    meta_adset_id: null,
+    google_campaign_id: null,
     created_at: '2024-01-02T00:00:00Z',
   },
 ];

@@ -15,6 +15,12 @@ const navItems: NavItem[] = [
   { label: 'Integrações',  path: '/integracoes',  icon: '⇄' },
 ];
 
+const PLANO_LABEL: Record<string, string> = {
+  free: 'Gratuito',
+  basico: 'Básico',
+  pro: 'Pro',
+};
+
 export function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -51,13 +57,27 @@ export function Sidebar() {
         })}
       </nav>
 
+      {user?.plano === 'free' && (
+        <button
+          onClick={() => navigate('/assinar')}
+          style={styles.upgradeBtn}
+        >
+          ✦ Fazer upgrade
+        </button>
+      )}
+
       <div className="sidebar-footer" style={styles.footer}>
         <div style={styles.userInfo}>
           <div style={styles.avatar}>
             {user?.nome?.charAt(0).toUpperCase()}
           </div>
           <div style={styles.userText}>
-            <span style={styles.userName}>{user?.nome}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={styles.userName}>{user?.nome}</span>
+              <span style={styles.planoBadge}>
+                {PLANO_LABEL[user?.plano ?? 'free'] ?? user?.plano}
+              </span>
+            </div>
             <span style={styles.userEmail}>{user?.email}</span>
           </div>
         </div>
@@ -171,5 +191,29 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '4px',
     flexShrink: 0,
     lineHeight: 1,
+  },
+  upgradeBtn: {
+    display: 'block',
+    width: '100%',
+    marginBottom: '12px',
+    padding: '9px 0',
+    borderRadius: 'var(--radius-btn)',
+    border: '1.5px solid var(--color-ember)',
+    background: 'rgba(232,93,38,0.06)',
+    color: 'var(--color-ember)',
+    fontFamily: 'var(--font-ui)',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    textAlign: 'center',
+  },
+  planoBadge: {
+    fontSize: '10px',
+    fontWeight: 600,
+    padding: '2px 6px',
+    borderRadius: 10,
+    background: 'rgba(232,93,38,0.1)',
+    color: 'var(--color-ember)',
+    flexShrink: 0,
   },
 };

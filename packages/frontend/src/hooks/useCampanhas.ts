@@ -11,6 +11,9 @@ export interface Campanha {
   plataforma: 'meta' | 'google' | 'ambos';
   status: 'ativa' | 'pausada' | 'encerrada';
   estrategia: unknown | null;
+  meta_campaign_id: string | null;
+  meta_adset_id: string | null;
+  google_campaign_id: string | null;
   created_at: string;
 }
 

@@ -6,6 +6,7 @@ export interface Criativo {
   campanha_id: string;
   url_imagem: string;
   tipo: string;
+  meta_ad_id: string | null;
   created_at: string;
 }
 

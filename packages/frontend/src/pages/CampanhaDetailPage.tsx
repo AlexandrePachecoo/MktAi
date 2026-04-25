@@ -68,6 +68,7 @@ const PLATAFORMA_COLOR: Record<string, string> = {
   ambos:  '#e85d26',
 };
 
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export function CampanhaDetailPage() {
@@ -92,11 +93,59 @@ export function CampanhaDetailPage() {
   const [copyExpandido, setCopyExpandido] = useState<number | null>(null);
   const [uploadando, setUploadando] = useState(false);
   const [erroUpload, setErroUpload] = useState('');
+  const [imagemAmpliada, setImagemAmpliada] = useState<string | null>(null);
   const [mostrarGerarIA, setMostrarGerarIA] = useState(false);
   const [extraIA, setExtraIA] = useState('');
   const [copyIndexSelecionada, setCopyIndexSelecionada] = useState<number | null>(null);
   const [gerandoCriativo, setGerandoCriativo] = useState(false);
   const [erroGerarIA, setErroGerarIA] = useState('');
+  const [mostrarModalPublicar, setMostrarModalPublicar] = useState(false);
+  const [criativoParaMeta, setCriativoParaMeta] = useState<string>('');
+  const [copyParaMeta, setCopyParaMeta] = useState<number | null>(null);
+  const [publicandoMeta, setPublicandoMeta] = useState(false);
+  const [erroPublicacao, setErroPublicacao] = useState('');
+  const [publicandoCriativo, setPublicandoCriativo] = useState<string | null>(null);
+
+  function abrirModalPublicar() {
+    setCriativoParaMeta(criativos[0]?.id ?? '');
+    setCopyParaMeta(null);
+    setErroPublicacao('');
+    setMostrarModalPublicar(true);
+  }
+
+  async function confirmarPublicacaoNoMeta() {
+    if (!id || !criativoParaMeta) return;
+    setPublicandoMeta(true);
+    setErroPublicacao('');
+    try {
+      if (!campanha?.meta_campaign_id) {
+        await api.post(`/campanhas/${id}/publicar-meta`, {});
+        await recarregar();
+      }
+      await api.post(`/campanhas/${id}/criativos/${criativoParaMeta}/publicar-meta`, {
+        copy_index: copyParaMeta ?? undefined,
+      });
+      await recarregarCriativos();
+      setMostrarModalPublicar(false);
+    } catch (err) {
+      setErroPublicacao(err instanceof Error ? err.message : 'Erro ao publicar no Meta');
+    } finally {
+      setPublicandoMeta(false);
+    }
+  }
+
+  async function publicarCriativoNoMeta(criativoId: string) {
+    if (!id) return;
+    setPublicandoCriativo(criativoId);
+    try {
+      await api.post(`/campanhas/${id}/criativos/${criativoId}/publicar-meta`, {});
+      await recarregarCriativos();
+    } catch (err) {
+      console.error('Erro ao publicar criativo no Meta:', err);
+    } finally {
+      setPublicandoCriativo(null);
+    }
+  }
 
   async function gerarEstrategia() {
     setGerandoEstrategia(true);
@@ -148,13 +197,6 @@ export function CampanhaDetailPage() {
     } finally {
       setGerandoCriativo(false);
     }
-  }
-
-  function abrirGerarIA() {
-    setExtraIA('');
-    setCopyIndexSelecionada(null);
-    setErroGerarIA('');
-    setMostrarGerarIA(true);
   }
 
   // ── Funções Testes A/B ──
@@ -264,38 +306,58 @@ export function CampanhaDetailPage() {
           </p>
         </div>
 
-        {campanha.status !== 'encerrada' && (
-          <div style={styles.headerActions}>
-            {campanha.status === 'ativa' ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => alterarStatus('pausada')}
-                disabled={alterandoStatus}
-              >
-                Pausar
-              </Button>
+        <div style={styles.headerActions}>
+          {['meta', 'ambos'].includes(campanha.plataforma) && (
+            campanha.meta_campaign_id ? (
+              <span style={styles.metaBadgeOk}>
+                Meta publicado
+              </span>
             ) : (
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => alterarStatus('ativa')}
-                disabled={alterandoStatus}
+                onClick={abrirModalPublicar}
+                disabled={criativos.length === 0}
+                style={{ background: '#1877F218', color: '#1877F2', borderColor: '#1877F240' }}
+                title={criativos.length === 0 ? 'Adicione ao menos um criativo primeiro' : undefined}
               >
-                Reativar
+                Publicar no Meta
               </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => alterarStatus('encerrada')}
-              disabled={alterandoStatus}
-              style={{ color: '#999' }}
-            >
-              Encerrar
-            </Button>
-          </div>
-        )}
+            )
+          )}
+          {campanha.status !== 'encerrada' && (
+            <>
+              {campanha.status === 'ativa' ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => alterarStatus('pausada')}
+                  disabled={alterandoStatus}
+                >
+                  Pausar
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => alterarStatus('ativa')}
+                  disabled={alterandoStatus}
+                >
+                  Reativar
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => alterarStatus('encerrada')}
+                disabled={alterandoStatus}
+                style={{ color: '#999' }}
+              >
+                Encerrar
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── Informações ── */}
@@ -420,7 +482,7 @@ export function CampanhaDetailPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={abrirGerarIA}
+              onClick={() => { setMostrarGerarIA(v => !v); setErroGerarIA(''); setExtraIA(''); setCopyIndexSelecionada(null); }}
               disabled={gerandoCriativo || uploadando}
             >
               ✦ Gerar com IA
@@ -447,8 +509,7 @@ export function CampanhaDetailPage() {
         {mostrarGerarIA && (
           <div style={styles.gerarIABox}>
             {(() => {
-              const estrategiaAtual = campanha?.estrategia as Estrategia | null;
-              const copies = estrategiaAtual?.copies ?? [];
+              const copies = (campanha?.estrategia as Estrategia | null)?.copies ?? [];
               return copies.length > 0 ? (
                 <div style={{ marginBottom: '16px' }}>
                   <p style={styles.gerarIALabel}>Usar uma copy da estratégia (opcional):</p>
@@ -473,14 +534,13 @@ export function CampanhaDetailPage() {
                 </div>
               ) : null;
             })()}
-
             <p style={styles.gerarIALabel}>Observações adicionais (opcional):</p>
             <textarea
               value={extraIA}
               onChange={(e) => setExtraIA(e.target.value)}
-              rows={3}
+              rows={2}
               style={styles.gerarIATextarea}
-              placeholder="Ex: fundo escuro, tons de azul e dourado, estilo minimalista..."
+              placeholder="Ex: tons quentes, estilo minimalista, fundo escuro..."
               disabled={gerandoCriativo}
             />
             {erroGerarIA && <p style={{ ...styles.errorText, marginBottom: '8px' }}>{erroGerarIA}</p>}
@@ -488,12 +548,7 @@ export function CampanhaDetailPage() {
               <Button onClick={gerarCriativoIA} disabled={gerandoCriativo} size="sm">
                 {gerandoCriativo ? 'Gerando imagem...' : 'Gerar imagem'}
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setMostrarGerarIA(false)}
-                disabled={gerandoCriativo}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setMostrarGerarIA(false)} disabled={gerandoCriativo}>
                 Cancelar
               </Button>
             </div>
@@ -511,11 +566,138 @@ export function CampanhaDetailPage() {
         ) : (
           <div style={styles.criativos_grid}>
             {criativos.map((c) => (
-              <CriativoThumb key={c.id} criativo={c} />
+              <CriativoThumb
+                key={c.id}
+                criativo={c}
+                onAmpliar={setImagemAmpliada}
+                onPublicarMeta={campanha.meta_adset_id ? publicarCriativoNoMeta : undefined}
+                publicando={publicandoCriativo === c.id}
+              />
             ))}
           </div>
         )}
       </Card>
+
+      {/* ── Lightbox ── */}
+      {imagemAmpliada && (
+        <div
+          style={styles.lightboxOverlay}
+          onClick={() => setImagemAmpliada(null)}
+        >
+          <img
+            src={imagemAmpliada}
+            alt="Criativo ampliado"
+            style={styles.lightboxImg}
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            style={styles.lightboxClose}
+            onClick={() => setImagemAmpliada(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* ── Modal Publicar no Meta ── */}
+      {mostrarModalPublicar && campanha && (
+        <div style={styles.modalOverlay} onClick={() => !publicandoMeta && setMostrarModalPublicar(false)}>
+          <div style={styles.modalBox} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <p style={styles.modalTitle}>Publicar no Meta Ads</p>
+              <button style={styles.modalCloseBtn} onClick={() => setMostrarModalPublicar(false)} disabled={publicandoMeta}>✕</button>
+            </div>
+
+            {/* Selecionar criativo */}
+            <div style={styles.modalSection}>
+              <p style={styles.modalLabel}>Criativo do anúncio</p>
+              <div style={styles.modalCriativosGrid}>
+                {criativos.map((c) => (
+                  <button
+                    key={c.id}
+                    style={{
+                      ...styles.modalCriativoBtn,
+                      ...(criativoParaMeta === c.id ? styles.modalCriativoBtnAtivo : {}),
+                    }}
+                    onClick={() => setCriativoParaMeta(c.id)}
+                    disabled={publicandoMeta}
+                    type="button"
+                  >
+                    <img
+                      src={c.url_imagem}
+                      alt="Criativo"
+                      style={styles.modalCriativoImg}
+                    />
+                    {criativoParaMeta === c.id && (
+                      <div style={styles.modalCriativoCheck}>✓</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Selecionar copy */}
+            {(() => {
+              const copies = (campanha.estrategia as Estrategia | null)?.copies ?? [];
+              return copies.length > 0 ? (
+                <div style={styles.modalSection}>
+                  <p style={styles.modalLabel}>Copy / descrição do anúncio <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(opcional)</span></p>
+                  <div style={styles.modalCopiesList}>
+                    <button
+                      style={{
+                        ...styles.modalCopyBtn,
+                        ...(copyParaMeta === null ? styles.modalCopyBtnAtivo : {}),
+                      }}
+                      onClick={() => setCopyParaMeta(null)}
+                      disabled={publicandoMeta}
+                      type="button"
+                    >
+                      <span style={styles.modalCopyNum}>—</span>
+                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Sem copy (usar nome da campanha)</span>
+                    </button>
+                    {copies.map((copy, idx) => (
+                      <button
+                        key={idx}
+                        style={{
+                          ...styles.modalCopyBtn,
+                          ...(copyParaMeta === idx ? styles.modalCopyBtnAtivo : {}),
+                        }}
+                        onClick={() => setCopyParaMeta(idx)}
+                        disabled={publicandoMeta}
+                        type="button"
+                      >
+                        <span style={styles.modalCopyNum}>{idx + 1}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={styles.modalCopyTitulo}>{copy.titulo}</p>
+                          <p style={styles.modalCopyTexto}>{copy.texto}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
+            {erroPublicacao && (
+              <p style={{ ...styles.errorText, marginBottom: '12px' }}>{erroPublicacao}</p>
+            )}
+
+            <div style={styles.modalFooter}>
+              <Button variant="ghost" size="sm" onClick={() => setMostrarModalPublicar(false)} disabled={publicandoMeta}>
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={confirmarPublicacaoNoMeta}
+                disabled={!criativoParaMeta || publicandoMeta}
+                style={{ background: '#1877F2', borderColor: '#1877F2' }}
+              >
+                {publicandoMeta ? 'Publicando...' : 'Publicar no Meta'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Testes A/B ── */}
       <Card style={styles.section}>
@@ -666,30 +848,70 @@ export function CampanhaDetailPage() {
 
 // ─── CriativoThumb ────────────────────────────────────────────────────────────
 
-function CriativoThumb({ criativo }: { criativo: Criativo }) {
+function CriativoThumb({
+  criativo,
+  onAmpliar,
+  onPublicarMeta,
+  publicando,
+}: {
+  criativo: Criativo;
+  onAmpliar: (url: string) => void;
+  onPublicarMeta?: (id: string) => void;
+  publicando?: boolean;
+}) {
   const [imgError, setImgError] = useState(false);
+  const [hover, setHover] = useState(false);
 
   return (
-    <div style={styles.criativos_thumb}>
-      {imgError ? (
-        <div style={styles.criativos_thumbFallback}>
-          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Indisponível</span>
-        </div>
-      ) : (
-        <img
-          src={criativo.url_imagem}
-          alt="Criativo"
-          style={styles.criativos_thumbImg}
-          onError={() => setImgError(true)}
-        />
-      )}
+    <div
+      style={styles.criativos_thumb}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <div style={{ position: 'relative' }}>
+        {imgError ? (
+          <div style={styles.criativos_thumbFallback}>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Indisponível</span>
+          </div>
+        ) : (
+          <img
+            src={criativo.url_imagem}
+            alt="Criativo"
+            style={styles.criativos_thumbImg}
+            onError={() => setImgError(true)}
+          />
+        )}
+        {!imgError && hover && (
+          <button
+            style={styles.criativos_thumbZoom}
+            onClick={() => onAmpliar(criativo.url_imagem)}
+            title="Ver em tamanho maior"
+          >
+            ⤢
+          </button>
+        )}
+      </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px' }}>
         <p style={{ ...styles.criativos_thumbData, padding: 0 }}>
           {new Date(criativo.created_at).toLocaleDateString('pt-BR')}
         </p>
-        {criativo.tipo === 'gerado_ia' && (
-          <span style={styles.criativos_thumbBadge}>IA</span>
-        )}
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          {criativo.tipo === 'gerado_ia' && (
+            <span style={styles.criativos_thumbBadge}>IA</span>
+          )}
+          {criativo.meta_ad_id ? (
+            <span style={styles.metaBadgeSmall}>Meta</span>
+          ) : onPublicarMeta ? (
+            <button
+              style={styles.metaEnviarBtn}
+              onClick={() => onPublicarMeta(criativo.id)}
+              disabled={publicando}
+              title="Enviar ao Meta Ads"
+            >
+              {publicando ? '...' : 'Meta'}
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -860,6 +1082,59 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '2px 5px',
     fontFamily: 'var(--font-ui)',
     letterSpacing: '0.04em',
+  },
+  criativos_thumbZoom: {
+    position: 'absolute' as const,
+    top: '6px',
+    right: '6px',
+    width: '28px',
+    height: '28px',
+    borderRadius: '6px',
+    background: 'rgba(0,0,0,0.55)',
+    border: 'none',
+    color: '#fff',
+    fontSize: '15px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: 1,
+  },
+
+  // Lightbox
+  lightboxOverlay: {
+    position: 'fixed' as const,
+    inset: 0,
+    background: 'rgba(0,0,0,0.85)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    cursor: 'zoom-out',
+  },
+  lightboxImg: {
+    maxWidth: '90vw',
+    maxHeight: '90vh',
+    borderRadius: '8px',
+    objectFit: 'contain' as const,
+    cursor: 'default',
+    boxShadow: '0 8px 48px rgba(0,0,0,0.6)',
+  },
+  lightboxClose: {
+    position: 'absolute' as const,
+    top: '16px',
+    right: '20px',
+    background: 'rgba(255,255,255,0.12)',
+    border: 'none',
+    color: '#fff',
+    fontSize: '18px',
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Testes A/B
@@ -1051,6 +1326,71 @@ const styles: Record<string, React.CSSProperties> = {
     outline: 'none',
     lineHeight: 1.6,
   },
+  templateGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '8px',
+    marginBottom: '20px',
+  },
+  templateCard: {
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '8px',
+    padding: '0 0 8px',
+    cursor: 'pointer',
+    textAlign: 'left' as const,
+    overflow: 'hidden',
+    transition: 'border-color 0.15s',
+  },
+  templateCardAtivo: {
+    border: '1px solid var(--color-ember)',
+    background: 'rgba(232,93,38,0.06)',
+  },
+  templatePreview: {
+    position: 'relative' as const,
+    width: '100%',
+    paddingTop: '100%', // quadrado
+    background: 'linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 50%, #0d0d1a 100%)',
+    marginBottom: '6px',
+    overflow: 'hidden',
+  },
+  templatePreviewGrad: {
+    position: 'absolute' as const,
+    inset: 0,
+  },
+  templatePreviewTitle: {
+    position: 'absolute' as const,
+    left: '8%',
+    right: '8%',
+    color: '#fff',
+    fontWeight: 700,
+    fontFamily: 'var(--font-ui)',
+    lineHeight: 1.2,
+    textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+  },
+  templatePreviewCopy: {
+    position: 'absolute' as const,
+    left: '8%',
+    right: '8%',
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: '7px',
+    fontFamily: 'var(--font-ui)',
+    lineHeight: 1.3,
+  },
+  templateNome: {
+    margin: '0 8px 2px',
+    fontSize: '11px',
+    fontWeight: 600,
+    color: 'var(--color-text-primary)',
+    fontFamily: 'var(--font-ui)',
+  },
+  templateDesc: {
+    margin: '0 8px',
+    fontSize: '10px',
+    color: 'var(--color-text-muted)',
+    fontFamily: 'var(--font-ui)',
+  },
+
   gerarIACopiesList: {
     display: 'flex',
     flexDirection: 'column' as const,
@@ -1261,5 +1601,196 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-ui)',
     borderTop: '1px solid var(--color-border)',
     paddingTop: '12px',
+  },
+
+  // Modal Publicar no Meta
+  modalOverlay: {
+    position: 'fixed' as const,
+    inset: 0,
+    background: 'rgba(0,0,0,0.6)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 200,
+    padding: '16px',
+  },
+  modalBox: {
+    background: 'var(--color-bg-card)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '12px',
+    width: '100%',
+    maxWidth: '540px',
+    maxHeight: '85vh',
+    overflowY: 'auto' as const,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '20px 24px 16px',
+    borderBottom: '1px solid var(--color-border)',
+  },
+  modalTitle: {
+    fontSize: '16px',
+    fontWeight: 700,
+    color: 'var(--color-text-primary)',
+    fontFamily: 'var(--font-display)',
+    margin: 0,
+  },
+  modalCloseBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: 'var(--color-text-muted)',
+    fontSize: '16px',
+    padding: '4px',
+  },
+  modalSection: {
+    padding: '16px 24px',
+    borderBottom: '1px solid var(--color-border)',
+  },
+  modalLabel: {
+    fontSize: '12px',
+    fontWeight: 600,
+    color: 'var(--color-text-muted)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.06em',
+    marginBottom: '12px',
+    margin: '0 0 12px',
+    fontFamily: 'var(--font-ui)',
+  },
+  modalCriativosGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))',
+    gap: '8px',
+  },
+  modalCriativoBtn: {
+    position: 'relative' as const,
+    border: '2px solid var(--color-border)',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    cursor: 'pointer',
+    padding: 0,
+    background: 'none',
+    aspectRatio: '1',
+  },
+  modalCriativoBtnAtivo: {
+    borderColor: '#1877F2',
+  },
+  modalCriativoImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover' as const,
+    display: 'block',
+  },
+  modalCriativoCheck: {
+    position: 'absolute' as const,
+    top: '4px',
+    right: '4px',
+    background: '#1877F2',
+    color: 'white',
+    borderRadius: '50%',
+    width: '20px',
+    height: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '11px',
+    fontWeight: 700,
+  },
+  modalCopiesList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '6px',
+    maxHeight: '200px',
+    overflowY: 'auto' as const,
+  },
+  modalCopyBtn: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '10px',
+    padding: '10px 12px',
+    border: '1px solid var(--color-border)',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    background: 'transparent',
+    textAlign: 'left' as const,
+    width: '100%',
+  },
+  modalCopyBtnAtivo: {
+    borderColor: '#1877F2',
+    background: '#1877F208',
+  },
+  modalCopyNum: {
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#1877F2',
+    background: '#1877F218',
+    borderRadius: '4px',
+    padding: '2px 7px',
+    fontFamily: 'var(--font-ui)',
+    flexShrink: 0,
+    marginTop: '1px',
+  },
+  modalCopyTitulo: {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: 'var(--color-text-primary)',
+    margin: '0 0 2px',
+    fontFamily: 'var(--font-ui)',
+  },
+  modalCopyTexto: {
+    fontSize: '12px',
+    color: 'var(--color-text-muted)',
+    margin: 0,
+    fontFamily: 'var(--font-ui)',
+    lineHeight: 1.4,
+    overflow: 'hidden',
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical' as const,
+  },
+  modalFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '8px',
+    padding: '16px 24px',
+  },
+
+  // Meta Ads
+  metaBadgeOk: {
+    fontSize: '11px',
+    fontWeight: 600,
+    color: '#1877F2',
+    background: '#1877F218',
+    border: '1px solid #1877F240',
+    borderRadius: '6px',
+    padding: '4px 10px',
+    fontFamily: 'var(--font-ui)',
+    whiteSpace: 'nowrap' as const,
+  },
+  metaBadgeSmall: {
+    fontSize: '10px',
+    fontWeight: 600,
+    color: '#1877F2',
+    background: '#1877F218',
+    border: '1px solid #1877F240',
+    borderRadius: '4px',
+    padding: '2px 6px',
+    fontFamily: 'var(--font-ui)',
+  },
+  metaEnviarBtn: {
+    fontSize: '10px',
+    fontWeight: 600,
+    color: '#1877F2',
+    background: 'transparent',
+    border: '1px solid #1877F280',
+    borderRadius: '4px',
+    padding: '2px 6px',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-ui)',
   },
 };

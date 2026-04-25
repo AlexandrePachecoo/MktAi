@@ -8,6 +8,7 @@ import { CampanhasPage } from '@/pages/CampanhasPage';
 import { NovaCampanhaPage } from '@/pages/NovaCampanhaPage';
 import { CampanhaDetailPage } from '@/pages/CampanhaDetailPage';
 import { IntegracoesPage } from '@/pages/IntegracoesPage';
+import { AssinaturaPage } from '@/pages/AssinaturaPage';
 import { LandingPage } from '@/pages/LandingPage';
 
 function LandingRoute({ children }: { children: React.ReactNode }) {
@@ -89,6 +90,14 @@ function AppRoutes() {
         element={
           <PrivateRoute>
             <IntegracoesPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/assinar"
+        element={
+          <PrivateRoute>
+            <AssinaturaPage />
           </PrivateRoute>
         }
       />
