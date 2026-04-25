@@ -459,13 +459,61 @@ export function LandingPage() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            gridTemplateColumns: '1fr 1fr 1fr',
             gap: 20,
-            maxWidth: 680,
+            maxWidth: 980,
             margin: '0 auto',
           }}
           className="pricing-grid"
           >
+            {/* Free */}
+            <div style={{
+              background: '#f5f0e8',
+              borderRadius: 16,
+              padding: '36px 32px',
+              textAlign: 'left',
+            }}>
+              <p style={{ fontSize: 12, color: '#888880', fontFamily: 'var(--font-ui)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
+                Free
+              </p>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginBottom: 4 }}>
+                <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 40, color: '#1a1208', lineHeight: 1, letterSpacing: '-1px' }}>
+                  R$0
+                </p>
+                <p style={{ fontSize: 14, color: '#888880', fontFamily: 'var(--font-ui)', marginBottom: 4 }}>
+                  /sempre
+                </p>
+              </div>
+              <p style={{ fontSize: 14, color: '#888880', fontFamily: 'var(--font-ui)', marginBottom: 28 }}>
+                Para experimentar.
+              </p>
+              <FeatureList items={[
+                'Até 2 campanhas',
+                'Até 10 copies geradas',
+                'Geração de estratégia com IA',
+              ]} />
+              <Link to="/register" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 46,
+                background: 'transparent',
+                border: '1px solid rgba(26,18,8,0.2)',
+                borderRadius: 9,
+                color: '#1a1208',
+                fontFamily: 'var(--font-ui)',
+                fontWeight: 500,
+                fontSize: 14,
+                textDecoration: 'none',
+                transition: 'border-color 0.15s',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#1a1208')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(26,18,8,0.2)')}
+              >
+                Criar conta grátis →
+              </Link>
+            </div>
+
             {/* Básico */}
             <div style={{
               background: '#ffffff',
@@ -488,9 +536,10 @@ export function LandingPage() {
                 Para começar a escalar.
               </p>
               <FeatureList items={[
-                'Até 10 campanhas ativas',
+                'Até 5 campanhas ativas',
+                'Até 25 criativos',
+                'Copies ilimitadas',
                 'Meta + Google simultâneo',
-                'Geração de criativos com IA',
                 'Testes A/B',
                 'Suporte prioritário',
               ]} />
@@ -558,7 +607,9 @@ export function LandingPage() {
                 Para quem quer escalar.
               </p>
               <FeatureList highlight items={[
-                'Campanhas ilimitadas',
+                'Até 10 campanhas',
+                'Até 50 criativos',
+                'Copies ilimitadas',
                 'Meta + Google simultâneo',
                 'Testes A/B automáticos',
                 'Logs completos da IA',

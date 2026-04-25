@@ -116,32 +116,46 @@ export function AssinaturaPage() {
                     ))}
                   </ul>
 
-                  <button
-                    onClick={() => !ativo && handleAssinar(plano.slug)}
-                    disabled={ativo || assinando !== null}
-                    style={{
+                  {plano.slug !== 'free' && (
+                    <button
+                      onClick={() => !ativo && handleAssinar(plano.slug)}
+                      disabled={ativo || assinando !== null}
+                      style={{
+                        marginTop: 'auto',
+                        padding: '12px 0',
+                        borderRadius: 'var(--radius-btn)',
+                        border: 'none',
+                        cursor: ativo ? 'default' : 'pointer',
+                        background: ativo
+                          ? 'var(--color-border)'
+                          : isPro
+                          ? 'var(--color-ember)'
+                          : 'var(--color-text-primary)',
+                        color: ativo ? 'var(--color-text-muted)' : '#fff',
+                        fontWeight: 600,
+                        fontSize: 14,
+                        opacity: assinando !== null && assinando !== plano.slug ? 0.6 : 1,
+                      }}
+                    >
+                      {ativo
+                        ? 'Plano atual'
+                        : assinando === plano.slug
+                        ? 'Redirecionando...'
+                        : `Assinar ${plano.nome}`}
+                    </button>
+                  )}
+                  {plano.slug === 'free' && (
+                    <div style={{
                       marginTop: 'auto',
                       padding: '12px 0',
-                      borderRadius: 'var(--radius-btn)',
-                      border: 'none',
-                      cursor: ativo ? 'default' : 'pointer',
-                      background: ativo
-                        ? 'var(--color-border)'
-                        : isPro
-                        ? 'var(--color-ember)'
-                        : 'var(--color-text-primary)',
-                      color: ativo ? 'var(--color-text-muted)' : '#fff',
-                      fontWeight: 600,
+                      textAlign: 'center',
                       fontSize: 14,
-                      opacity: assinando !== null && assinando !== plano.slug ? 0.6 : 1,
-                    }}
-                  >
-                    {ativo
-                      ? 'Plano atual'
-                      : assinando === plano.slug
-                      ? 'Redirecionando...'
-                      : `Assinar ${plano.nome}`}
-                  </button>
+                      color: 'var(--color-text-muted)',
+                      fontFamily: 'var(--font-ui)',
+                    }}>
+                      {ativo ? 'Plano atual' : 'Incluído na criação de conta'}
+                    </div>
+                  )}
                 </div>
               );
             })}
