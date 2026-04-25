@@ -27,6 +27,14 @@ async function garantirAdmin() {
   }
 }
 
+const REQUIRED_ENV = ['JWT_SECRET', 'DATABASE_URL'] as const;
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    console.error(`[startup] Variável de ambiente obrigatória não definida: ${key}`);
+    process.exit(1);
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
