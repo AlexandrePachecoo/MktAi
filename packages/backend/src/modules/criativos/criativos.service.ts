@@ -280,7 +280,7 @@ export async function gerarCriativoIA(
   // PASSO 1 — gera imagem base via GPT Image
   const openai = getOpenAI();
   const generateRes = await openai.images.generate({
-    model: 'gpt-image-1',
+    model: 'gpt-image-2',
     prompt: buildPrompt(campanha, zona, options.extra),
     quality: 'high',
     size: '1024x1024',
