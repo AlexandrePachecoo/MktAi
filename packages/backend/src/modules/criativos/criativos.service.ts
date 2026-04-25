@@ -1,6 +1,11 @@
+import OpenAI from 'openai';
 import sharp from 'sharp';
 import { supabase } from '../../lib/supabase';
 import { prisma } from '../../lib/prisma';
+
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 const BUCKET = 'criativos';
 
@@ -249,40 +254,21 @@ export async function gerarCriativoIA(
   const copy =
     options.copyIndex != null ? estrategia?.copies?.[options.copyIndex] : undefined;
 
-  const apiKey = process.env.IDEOGRAM_API_KEY;
-  if (!apiKey) throw new Error('IDEOGRAM_API_KEY não configurada');
-
   // Sorteia a zona uma vez — usada no prompt E no composite
   const zona = sortearZona();
 
-  // PASSO 1 — gera imagem base (sem texto)
-  const generateRes = await fetch('https://api.ideogram.ai/generate', {
-    method: 'POST',
-    headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      image_request: {
-        prompt: buildPrompt(campanha, zona, options.extra),
-        aspect_ratio: 'ASPECT_1_1',
-        model: 'V_2',
-        magic_prompt_option: 'AUTO',
-      },
-    }),
+  // PASSO 1 — gera imagem base via GPT Image
+  const openai = getOpenAI();
+  const generateRes = await openai.images.generate({
+    model: 'gpt-image-1',
+    prompt: buildPrompt(campanha, zona, options.extra),
+    size: '1024x1024',
+    n: 1,
   });
 
-  if (!generateRes.ok) {
-    const body = await generateRes.text();
-    throw new Error(`Ideogram /generate error: ${generateRes.status} — ${body}`);
-  }
-
-  const generateData = await generateRes.json() as { data: { url: string }[] };
-  const baseImageUrl = generateData.data?.[0]?.url;
-  if (!baseImageUrl) throw new Error('Ideogram não retornou URL de imagem');
-
-  // PASSO 2 — baixa imagem base
-  const baseImgRes = await fetch(baseImageUrl);
-  if (!baseImgRes.ok) throw new Error('Falha ao baixar imagem do Ideogram');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let imageBuffer: any = Buffer.from(await baseImgRes.arrayBuffer());
+  const b64 = generateRes.data[0]?.b64_json;
+  if (!b64) throw new Error('GPT Image não retornou imagem');
+  let imageBuffer: Buffer = Buffer.from(b64, 'base64');
 
   // PASSO 3 — se há copy, compõe texto por cima com sharp (sem chamar Ideogram /edit)
   if (copy) {
