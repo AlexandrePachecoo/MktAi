@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { getLimites, planLimitError } from '../../lib/planos';
 
 export async function listarCampanhas(userId: string) {
   return prisma.campanha.findMany({
@@ -11,6 +12,22 @@ export async function criarCampanha(
   userId: string,
   data: { nome: string; descricao: string; publico_alvo: string; orcamento: number; plataforma: string }
 ) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    const err = new Error('NOT_FOUND');
+    err.name = 'NOT_FOUND';
+    throw err;
+  }
+
+  const limites = getLimites(user.plano, user.admin);
+
+  if (isFinite(limites.campanhas)) {
+    const total = await prisma.campanha.count({ where: { user_id: userId } });
+    if (total >= limites.campanhas) {
+      throw planLimitError('campanhas');
+    }
+  }
+
   return prisma.campanha.create({
     data: { user_id: userId, ...data },
   });

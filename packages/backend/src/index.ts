@@ -12,6 +12,20 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import pagamentosRoutes from './modules/pagamentos/pagamentos.routes';
 import './queue/optimization.worker';
 import { iniciarScheduler } from './queue/optimization.scheduler';
+import { prisma } from './lib/prisma';
+
+const ADMIN_EMAIL = 'Pachecoalexandre934@gmail.com';
+
+async function garantirAdmin() {
+  try {
+    await prisma.user.updateMany({
+      where: { email: ADMIN_EMAIL },
+      data: { admin: true, plano: 'pro' },
+    });
+  } catch {
+    // Silencioso: tabela pode não existir ainda durante primeira migration
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,10 +69,12 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 });
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Backend running on port ${PORT}`);
+  garantirAdmin().then(() => {
+    app.listen(PORT, () => {
+      console.log(`Backend running on port ${PORT}`);
+    });
+    iniciarScheduler();
   });
-  iniciarScheduler();
 }
 
 export default app;

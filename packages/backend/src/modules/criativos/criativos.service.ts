@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import sharp from 'sharp';
 import { supabase } from '../../lib/supabase';
 import { prisma } from '../../lib/prisma';
+import { getLimites, planLimitError } from '../../lib/planos';
 
 function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -232,6 +233,15 @@ ${extraBlock}
 `.trim();
 }
 
+async function contarCriativosDoUsuario(userId: string): Promise<number> {
+  const campanhas = await prisma.campanha.findMany({
+    where: { user_id: userId },
+    select: { id: true },
+  });
+  const campanhaIds = campanhas.map((c) => c.id);
+  return prisma.criativo.count({ where: { campanha_id: { in: campanhaIds } } });
+}
+
 export async function gerarCriativoIA(
   campanhaId: string,
   userId: string,
@@ -248,6 +258,16 @@ export async function gerarCriativoIA(
     const err = new Error('FORBIDDEN');
     err.name = 'FORBIDDEN';
     throw err;
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const limites = getLimites(user!.plano, user!.admin);
+
+  if (isFinite(limites.criativos)) {
+    const total = await contarCriativosDoUsuario(userId);
+    if (total >= limites.criativos) {
+      throw planLimitError('criativos');
+    }
   }
 
   const estrategia = campanha.estrategia as Estrategia | null;
@@ -317,6 +337,16 @@ export async function associarCriativo(campanhaId: string, userId: string, url_i
     const err = new Error('FORBIDDEN');
     err.name = 'FORBIDDEN';
     throw err;
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const limites = getLimites(user!.plano, user!.admin);
+
+  if (isFinite(limites.criativos)) {
+    const total = await contarCriativosDoUsuario(userId);
+    if (total >= limites.criativos) {
+      throw planLimitError('criativos');
+    }
   }
 
   return prisma.criativo.create({
