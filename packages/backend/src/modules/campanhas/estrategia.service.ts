@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { prisma } from '../../lib/prisma';
+import { getLimites, planLimitError } from '../../lib/planos';
 
 function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -31,6 +32,29 @@ export async function gerarEstrategia(campanhaId: string, userId: string): Promi
     const err = new Error('FORBIDDEN');
     err.name = 'FORBIDDEN';
     throw err;
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const limites = getLimites(user!.plano, user!.admin);
+
+  if (isFinite(limites.copies)) {
+    // Conta o total de copies em todas as campanhas do usuário, excluindo a campanha atual
+    // (pois ela será sobrescrita)
+    const todasCampanhas = await prisma.campanha.findMany({
+      where: { user_id: userId, id: { not: campanhaId } },
+      select: { estrategia: true },
+    });
+
+    let totalCopies = 0;
+    for (const c of todasCampanhas) {
+      const est = c.estrategia as { copies?: unknown[] } | null;
+      totalCopies += est?.copies?.length ?? 0;
+    }
+
+    // Cada geração produz 5 copies; verifica se ultrapassaria o limite
+    if (totalCopies + 5 > limites.copies) {
+      throw planLimitError('copies');
+    }
   }
 
   const prompt = `

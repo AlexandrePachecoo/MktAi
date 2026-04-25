@@ -13,6 +13,13 @@ const router = Router();
 
 router.use(authMiddleware as any);
 
+function planLimitMessage(message: string): string {
+  if (message.includes('CAMPANHAS')) return 'Limite de campanhas do seu plano atingido. Faça upgrade para criar mais campanhas.';
+  if (message.includes('COPIES')) return 'Limite de copies do seu plano atingido. Faça upgrade para gerar mais copies.';
+  if (message.includes('CRIATIVOS')) return 'Limite de criativos do seu plano atingido. Faça upgrade para gerar mais criativos.';
+  return 'Limite do plano atingido. Faça upgrade para continuar.';
+}
+
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   const campanhas = await listarCampanhas((req as AuthRequest).userId);
   res.json(campanhas);
@@ -25,10 +32,18 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  const campanha = await criarCampanha((req as AuthRequest).userId, {
-    nome, descricao, publico_alvo, orcamento, plataforma,
-  });
-  res.status(201).json(campanha);
+  try {
+    const campanha = await criarCampanha((req as AuthRequest).userId, {
+      nome, descricao, publico_alvo, orcamento, plataforma,
+    });
+    res.status(201).json(campanha);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'PLAN_LIMIT') {
+      res.status(403).json({ error: planLimitMessage(err.message), code: 'PLAN_LIMIT' });
+      return;
+    }
+    res.status(500).json({ error: 'Erro interno' });
+  }
 });
 
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
@@ -76,6 +91,10 @@ router.post('/:id/estrategia', async (req: Request, res: Response): Promise<void
     }
     if (err instanceof Error && err.name === 'FORBIDDEN') {
       res.status(403).json({ error: 'Acesso negado' });
+      return;
+    }
+    if (err instanceof Error && err.name === 'PLAN_LIMIT') {
+      res.status(403).json({ error: planLimitMessage(err.message), code: 'PLAN_LIMIT' });
       return;
     }
     res.status(500).json({ error: 'Erro ao gerar estratégia' });

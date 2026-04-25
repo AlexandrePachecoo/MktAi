@@ -5,12 +5,25 @@ const ABACATEPAY_BASE = 'https://api.abacatepay.com/v1';
 
 export const PLANOS = [
   {
+    slug: 'free',
+    nome: 'Free',
+    preco: 0,
+    precoFormatado: 'Grátis',
+    features: [
+      'Até 2 campanhas',
+      'Até 10 copies geradas',
+      'Geração de estratégia com IA',
+    ],
+  },
+  {
     slug: 'basico',
     nome: 'Básico',
     preco: 4890,
     precoFormatado: 'R$ 48,90/mês',
     features: [
-      'Até 10 campanhas ativas',
+      'Até 5 campanhas ativas',
+      'Até 25 criativos',
+      'Copies ilimitadas',
       'Meta + Google simultâneo',
       'Geração de criativos com IA',
       'Testes A/B',
@@ -23,7 +36,9 @@ export const PLANOS = [
     preco: 6890,
     precoFormatado: 'R$ 68,90/mês',
     features: [
-      'Campanhas ilimitadas',
+      'Até 10 campanhas',
+      'Até 50 criativos',
+      'Copies ilimitadas',
       'Meta + Google simultâneo',
       'Testes A/B automáticos',
       'Logs completos da IA',

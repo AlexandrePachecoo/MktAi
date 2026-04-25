@@ -18,6 +18,11 @@ const upload = multer({
 
 router.use(authMiddleware as any);
 
+function planLimitMessage(message: string): string {
+  if (message.includes('CRIATIVOS')) return 'Limite de criativos do seu plano atingido. Faça upgrade para adicionar mais criativos.';
+  return 'Limite do plano atingido. Faça upgrade para continuar.';
+}
+
 // POST /upload — faz upload e retorna URL pública
 router.post('/upload', upload.single('imagem'), async (req: Request, res: Response): Promise<void> => {
   if (!req.file) {
@@ -54,11 +59,15 @@ router.post('/:campanhaId/criativos', async (req: Request, res: Response): Promi
       res.status(403).json({ error: 'Acesso negado' });
       return;
     }
+    if (err instanceof Error && err.name === 'PLAN_LIMIT') {
+      res.status(403).json({ error: planLimitMessage(err.message), code: 'PLAN_LIMIT' });
+      return;
+    }
     res.status(500).json({ error: 'Erro interno' });
   }
 });
 
-// POST /campanhas/:id/criativos/gerar — gera criativo via Ideogram AI
+// POST /campanhas/:id/criativos/gerar — gera criativo via IA
 router.post('/:campanhaId/criativos/gerar', async (req: Request, res: Response): Promise<void> => {
   const { copy_index, extra } = req.body;
 
@@ -75,6 +84,10 @@ router.post('/:campanhaId/criativos/gerar', async (req: Request, res: Response):
     }
     if (err instanceof Error && err.name === 'FORBIDDEN') {
       res.status(403).json({ error: 'Acesso negado' });
+      return;
+    }
+    if (err instanceof Error && err.name === 'PLAN_LIMIT') {
+      res.status(403).json({ error: planLimitMessage(err.message), code: 'PLAN_LIMIT' });
       return;
     }
     console.error('[criativos/gerar] Erro:', err);
