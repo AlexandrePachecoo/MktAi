@@ -1,15 +1,28 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { register, login } from './auth.service';
 
 const router = Router();
 
+const registerSchema = z.object({
+  nome: z.string().min(2, 'Nome deve ter ao menos 2 caracteres'),
+  email: z.string().email('Email inválido'),
+  password: z.string().min(8, 'Senha deve ter ao menos 8 caracteres'),
+});
+
+const loginSchema = z.object({
+  email: z.string().email('Email inválido'),
+  password: z.string().min(1, 'Senha é obrigatória'),
+});
+
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
-  const { nome, email, password } = req.body;
-  if (!nome || !email || !password) {
-    res.status(400).json({ error: 'nome, email e password são obrigatórios' });
+  const parsed = registerSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.errors[0].message });
     return;
   }
 
+  const { nome, email, password } = parsed.data;
   try {
     const user = await register(nome, email, password);
     res.status(201).json(user);
@@ -24,12 +37,13 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 });
 
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    res.status(400).json({ error: 'email e password são obrigatórios' });
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.errors[0].message });
     return;
   }
 
+  const { email, password } = parsed.data;
   try {
     const result = await login(email, password);
     res.status(200).json(result);

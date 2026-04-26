@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { authMiddleware, AuthRequest } from '../../middlewares/auth.middleware';
 import {
   listarCampanhas,
@@ -8,6 +9,16 @@ import {
   deletarCampanha,
 } from './campanhas.service';
 import { gerarEstrategia } from './estrategia.service';
+
+const criarCampanhaSchema = z.object({
+  nome: z.string().min(1, 'Nome é obrigatório').max(200),
+  descricao: z.string().min(1, 'Descrição é obrigatória'),
+  publico_alvo: z.string().min(1, 'Público-alvo é obrigatório'),
+  orcamento: z.number({ invalid_type_error: 'Orçamento deve ser um número' }).positive('Orçamento deve ser positivo'),
+  plataforma: z.string().min(1, 'Plataforma é obrigatória'),
+});
+
+const atualizarCampanhaSchema = criarCampanhaSchema.partial();
 
 const router = Router();
 
@@ -26,12 +37,13 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 router.post('/', async (req: Request, res: Response): Promise<void> => {
-  const { nome, descricao, publico_alvo, orcamento, plataforma } = req.body;
-  if (!nome || !descricao || !publico_alvo || !orcamento || !plataforma) {
-    res.status(400).json({ error: 'nome, descricao, publico_alvo, orcamento e plataforma são obrigatórios' });
+  const parsed = criarCampanhaSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.errors[0].message });
     return;
   }
 
+  const { nome, descricao, publico_alvo, orcamento, plataforma } = parsed.data;
   try {
     const campanha = await criarCampanha((req as AuthRequest).userId, {
       nome, descricao, publico_alvo, orcamento, plataforma,
@@ -64,8 +76,14 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 router.put('/:id', async (req: Request, res: Response): Promise<void> => {
+  const parsed = atualizarCampanhaSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.errors[0].message });
+    return;
+  }
+
   try {
-    const campanha = await atualizarCampanha(req.params.id, (req as AuthRequest).userId, req.body);
+    const campanha = await atualizarCampanha(req.params.id, (req as AuthRequest).userId, parsed.data);
     res.json(campanha);
   } catch (err: unknown) {
     if (err instanceof Error && err.name === 'NOT_FOUND') {
