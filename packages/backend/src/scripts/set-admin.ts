@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma';
 
-const ADMIN_EMAIL = 'Pachecoalexandre934@gmail.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? '';
 
 async function main() {
   const user = await prisma.user.findUnique({ where: { email: ADMIN_EMAIL } });

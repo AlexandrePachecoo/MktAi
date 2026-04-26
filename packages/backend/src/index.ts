@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -14,7 +15,11 @@ import './queue/optimization.worker';
 import { iniciarScheduler } from './queue/optimization.scheduler';
 import { prisma } from './lib/prisma';
 
-const ADMIN_EMAIL = 'Pachecoalexandre934@gmail.com';
+if (process.env.SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.SENTRY_DSN });
+}
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? '';
 
 async function garantirAdmin() {
   try {
@@ -64,6 +69,8 @@ app.use('/api/campanhas', criativosRoutes);
 app.use('/api/campanhas/:campanhaId/testes-ab', testesAbRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/pagamentos', pagamentosRoutes);
+
+Sentry.setupExpressErrorHandler(app);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Rota não encontrada' });
