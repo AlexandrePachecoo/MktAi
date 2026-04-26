@@ -68,7 +68,7 @@ export function getMetaAuthUrl(token: string): string {
   const params = new URLSearchParams({
     client_id: process.env.META_APP_ID as string,
     redirect_uri: process.env.META_REDIRECT_URI as string,
-    scope: 'ads_management,ads_read,business_management',
+    scope: 'ads_management,ads_read,business_management,pages_manage_ads,pages_read_engagement,pages_show_list,public_profile,leads_retrieval',
     response_type: 'code',
     state: token,
   });

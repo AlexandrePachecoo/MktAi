@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './modules/auth/auth.routes';
 import integracoesRoutes from './modules/integracoes/integracoes.routes';
+import metaAdsRoutes from './modules/integracoes/meta-ads.routes';
 import campanhasRoutes from './modules/campanhas/campanhas.routes';
 import criativosRoutes from './modules/criativos/criativos.routes';
 import testesAbRoutes from './modules/testes-ab/testes-ab.routes';
@@ -63,6 +64,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/integracoes', integracoesRoutes);
+app.use('/api/meta-ads', metaAdsRoutes);
 app.use('/api/campanhas', campanhasRoutes);
 app.use('/api/upload', criativosRoutes);
 app.use('/api/campanhas', criativosRoutes);
