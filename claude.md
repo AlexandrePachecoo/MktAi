@@ -92,6 +92,12 @@ Usar sempre `v20` nas chamadas à Google Ads API. Versões v16–v19 foram desco
 ### Google Ads Developer Token — modo de teste
 O developer token em modo de teste só acessa contas de teste do Google Ads. Para produção, solicitar Basic Access em: Google Ads → Ferramentas → Central de API.
 
+### Cascata de deletes — onDelete: Cascade
+Relacionamentos entre Campanha, Criativo e TesteAB utilizam `onDelete: Cascade` no Prisma. Ao deletar uma campanha, todos os seus criativos e testes A/B são deletados automaticamente no banco de dados. Isso é aplicado nos relacionamentos:
+- `Criativo.campanha` → `onDelete: Cascade`
+- `TesteAB.campanha` → `onDelete: Cascade`
+- `TesteAB.criativo_a` e `TesteAB.criativo_b` → `onDelete: Cascade`
+
 ---
 
 ## Modelo de Dados
@@ -112,10 +118,13 @@ id, user_id, nome, descricao, objetivo, publico_alvo, orcamento, plataforma, sta
 
 ### Criativo
 ```
-id, campanha_id, url_imagem, tipo, created_at
+id, campanha_id, url_imagem, tipo, placement, meta_ad_id, created_at
 ```
 - `tipo`: upload | gerado_ia
+- `placement`: local de exibição do anúncio (optional)
+- `meta_ad_id`: ID do anúncio no Meta Ads (optional)
 - `url_imagem`: URL pública no Supabase Storage
+- **Cascata**: ao deletar campanha, todos os criativos são deletados automaticamente
 
 ### TesteAB
 ```
@@ -123,6 +132,7 @@ id, campanha_id, criativo_id_a, criativo_id_b, resultado, status
 ```
 - `status`: ativo | encerrado
 - `resultado`: texto livre indicando o vencedor
+- **Cascata**: ao deletar campanha, todos os testes A/B são deletados automaticamente
 
 ### Integracao
 ```
@@ -314,6 +324,29 @@ Usuário → POST /campanhas/:id/criativos/gerar
 ```
 Usuário → Dashboard → Meta/Google Ads API (direto, usa account_id salvo)
 ```
+
+---
+
+## Páginas e Componentes do Frontend
+
+### CampanhasPage
+- **Localização**: `packages/frontend/src/pages/CampanhasPage.tsx`
+- **Função**: Listagem de todas as campanhas do usuário com opções de visualizar detalhes ou deletar
+- **Funcionalidades**:
+  - Exibe nome, descrição, plataforma, orçamento e status de cada campanha
+  - Cores de status: ativa (#e85d26), pausada (#999999), encerrada (#4a4030)
+  - Botão "Ver detalhes" leva para `/campanhas/:id`
+  - Botão "Excluir" com confirmação antes de deletar
+  - Estados de loading e erro
+  - Card vazio quando não há campanhas
+
+### Testes de CampanhasPage
+- **Arquivo**: `packages/frontend/src/__tests__/CampanhasPage.test.tsx`
+- **Testes inclusos**: 
+  - Render do botão de exclusão
+  - Confirmação de diálogo antes de deletar
+  - Chamada da API e recarregar quando confirmado
+  - Não deletar se usuário cancelar
 
 ---
 

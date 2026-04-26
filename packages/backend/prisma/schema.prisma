@@ -50,7 +50,7 @@ model Criativo {
   meta_ad_id  String?
   created_at  DateTime @default(now())
 
-  campanha Campanha  @relation(fields: [campanha_id], references: [id])
+  campanha Campanha  @relation(fields: [campanha_id], references: [id], onDelete: Cascade)
   testes_a TesteAB[] @relation("VarianteA")
   testes_b TesteAB[] @relation("VarianteB")
 }
@@ -63,9 +63,9 @@ model TesteAB {
   resultado     String?
   status        String  @default("ativo")
 
-  campanha   Campanha @relation(fields: [campanha_id], references: [id])
-  criativo_a Criativo @relation("VarianteA", fields: [criativo_id_a], references: [id])
-  criativo_b Criativo @relation("VarianteB", fields: [criativo_id_b], references: [id])
+  campanha   Campanha @relation(fields: [campanha_id], references: [id], onDelete: Cascade)
+  criativo_a Criativo @relation("VarianteA", fields: [criativo_id_a], references: [id], onDelete: Cascade)
+  criativo_b Criativo @relation("VarianteB", fields: [criativo_id_b], references: [id], onDelete: Cascade)
 }
 
 model Integracao {

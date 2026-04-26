@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button, Card } from '@/components/ui';
 import { useCampanhas, Campanha } from '@/hooks/useCampanhas';
+import { api } from '@/lib/api';
 
 const STATUS_LABEL: Record<string, string> = {
   ativa: 'Ativa',
@@ -24,7 +25,19 @@ const PLATAFORMA_LABEL: Record<string, string> = {
 
 export function CampanhasPage() {
   const navigate = useNavigate();
-  const { campanhas, loading, error } = useCampanhas();
+  const { campanhas, loading, error, recarregar } = useCampanhas();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleExcluir(id: string) {
+    if (!window.confirm('Tem certeza que deseja excluir esta campanha? Essa ação não pode ser desfeita.')) return;
+    try {
+      setDeletingId(id);
+      await api.delete(`/campanhas/${id}`);
+      recarregar();
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <AppLayout>
@@ -65,7 +78,7 @@ export function CampanhasPage() {
       {!loading && !error && campanhas.length > 0 && (
         <div style={styles.list}>
           {campanhas.map((c) => (
-            <CampanhaRow key={c.id} campanha={c} />
+            <CampanhaRow key={c.id} campanha={c} onExcluir={handleExcluir} isDeleting={deletingId === c.id} />
           ))}
         </div>
       )}
@@ -73,7 +86,13 @@ export function CampanhasPage() {
   );
 }
 
-function CampanhaRow({ campanha }: { campanha: Campanha }) {
+interface CampanhaRowProps {
+  campanha: Campanha;
+  onExcluir: (id: string) => Promise<void>;
+  isDeleting: boolean;
+}
+
+function CampanhaRow({ campanha, onExcluir, isDeleting }: CampanhaRowProps) {
   const navigate = useNavigate();
 
   return (
@@ -115,6 +134,15 @@ function CampanhaRow({ campanha }: { campanha: Campanha }) {
             onClick={() => navigate(`/campanhas/${campanha.id}`)}
           >
             Ver detalhes
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            style={styles.btnExcluir}
+            onClick={() => onExcluir(campanha.id)}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Excluindo...' : 'Excluir'}
           </Button>
         </div>
       </div>
@@ -210,6 +238,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   rowActions: {
     flexShrink: 0,
+    display: 'flex',
+    gap: '8px',
+  },
+  btnExcluir: {
+    color: 'var(--color-ember)',
+    borderColor: 'var(--color-ember)',
   },
   center: {
     textAlign: 'center',

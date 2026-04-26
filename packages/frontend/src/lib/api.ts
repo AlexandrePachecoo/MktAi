@@ -16,6 +16,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
 
+  // 204 No Content não tem body
+  if (res.status === 204) {
+    if (!res.ok) {
+      throw new Error('Erro desconhecido');
+    }
+    return undefined as T;
+  }
+
   const data = await res.json();
 
   if (!res.ok) {
