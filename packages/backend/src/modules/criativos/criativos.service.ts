@@ -18,6 +18,13 @@ interface Estrategia {
   copies?: Copy[];
 }
 
+const PLACEMENT_SIZES: Record<string, { width: string; height: string; description: string }> = {
+  feed_instagram: { width: '1024', height: '1024', description: 'Instagram feed (square 1:1)' },
+  stories: { width: '1024', height: '1792', description: 'Stories (portrait 9:16)' },
+  reels: { width: '1024', height: '1792', description: 'Reels (portrait 9:16)' },
+  feed_facebook: { width: '1024', height: '1024', description: 'Facebook feed (square 1:1)' },
+};
+
 function buildPrompt(
   campanha: {
     nome: string;
@@ -29,6 +36,7 @@ function buildPrompt(
   copy?: Copy,
   extra?: string,
   paletaCores?: string[],
+  placement?: string,
 ): string {
   const copyBlock = copy
     ? `\nAD COPY TO INCLUDE IN THE IMAGE:\nHeadline: "${copy.titulo}"\nBody: "${copy.texto}"`
@@ -40,6 +48,14 @@ function buildPrompt(
       ? `\nCOLOR PALETTE (mandatory):\nUse exclusively these colors as the dominant palette: ${paletaCores.join(', ')}\nApply them to backgrounds, typography, accents, shapes, and all visual elements.`
       : '';
 
+  const placementInfo = placement && PLACEMENT_SIZES[placement];
+  const dimensionsText = placementInfo
+    ? `${placementInfo.width}x${placementInfo.height}`
+    : '1024x1024';
+  const formatDescription = placementInfo
+    ? placementInfo.description
+    : 'square format';
+
   const platformLabel =
     campanha.plataforma === 'meta'
       ? 'Facebook/Instagram feed'
@@ -48,7 +64,7 @@ function buildPrompt(
         : 'social media feed';
 
   return `
-Create a professional social media ad image (1:1 square format, 1024x1024).
+Create a professional social media ad image (${formatDescription}, ${dimensionsText}).
 
 BRAND: ${campanha.nome}
 PRODUCT/SERVICE: ${campanha.descricao}
@@ -66,6 +82,7 @@ DESIGN REQUIREMENTS:
 - Brand colors that feel premium and trustworthy
 - Clear call-to-action area
 - Optimized for ${platformLabel}
+- Optimized for ${formatDescription} (${dimensionsText} dimensions)
 
 STYLE: Polished, professional ad creative — NOT a photo dump, NOT cluttered. Think top-tier agency output.
 ${extraBlock}
@@ -91,7 +108,7 @@ async function contarCriativosDoUsuario(userId: string): Promise<number> {
 export async function gerarCriativoIA(
   campanhaId: string,
   userId: string,
-  options: { copyIndex?: number; extra?: string; paletaCores?: string[]; referenciaUrl?: string },
+  options: { copyIndex?: number; extra?: string; paletaCores?: string[]; referenciaUrl?: string; placement?: string },
 ) {
   const campanha = await prisma.campanha.findUnique({ where: { id: campanhaId } });
 
@@ -121,7 +138,13 @@ export async function gerarCriativoIA(
     options.copyIndex != null ? estrategia?.copies?.[options.copyIndex] : undefined;
 
   const openai = getOpenAI();
-  const prompt = buildPrompt(campanha, copy, options.extra, options.paletaCores);
+  const prompt = buildPrompt(campanha, copy, options.extra, options.paletaCores, options.placement);
+
+  // Determinar tamanho da imagem baseado no placement
+  const placementInfo = options.placement && PLACEMENT_SIZES[options.placement];
+  const imageSizeValue = placementInfo
+    ? (`${placementInfo.width}x${placementInfo.height}` as const)
+    : ('1024x1024' as const);
 
   let b64: string | undefined;
 
@@ -142,7 +165,7 @@ export async function gerarCriativoIA(
       model: 'chatgpt-image-latest',
       prompt,
       quality: 'high',
-      size: '1024x1024',
+      size: imageSizeValue as '1024x1024' | '1024x1792' | '1792x1024',
       n: 1,
     });
     b64 = generateRes.data?.[0]?.b64_json;
@@ -162,7 +185,7 @@ export async function gerarCriativoIA(
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
 
   return prisma.criativo.create({
-    data: { campanha_id: campanhaId, url_imagem: data.publicUrl, tipo: 'gerado_ia' },
+    data: { campanha_id: campanhaId, url_imagem: data.publicUrl, tipo: 'gerado_ia', placement: options.placement },
   });
 }
 

@@ -69,7 +69,7 @@ router.post('/:campanhaId/criativos', async (req: Request, res: Response): Promi
 
 // POST /campanhas/:id/criativos/gerar — gera criativo via IA
 router.post('/:campanhaId/criativos/gerar', async (req: Request, res: Response): Promise<void> => {
-  const { copy_index, extra, paleta_cores, referencia_url } = req.body;
+  const { copy_index, extra, paleta_cores, referencia_url, placement } = req.body;
 
   try {
     const criativo = await gerarCriativoIA(req.params.campanhaId, (req as AuthRequest).userId, {
@@ -77,6 +77,7 @@ router.post('/:campanhaId/criativos/gerar', async (req: Request, res: Response):
       extra: typeof extra === 'string' ? extra : undefined,
       paletaCores: Array.isArray(paleta_cores) ? paleta_cores : undefined,
       referenciaUrl: typeof referencia_url === 'string' ? referencia_url : undefined,
+      placement: typeof placement === 'string' ? placement : undefined,
     });
     res.status(201).json(criativo);
   } catch (err: unknown) {

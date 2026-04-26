@@ -22,17 +22,19 @@ model User {
 }
 
 model Campanha {
-  id           String   @id @default(uuid())
-  user_id      String
-  nome         String
-  descricao    String
-  objetivo     String?
-  publico_alvo String
-  orcamento    Float
-  plataforma   String
-  status       String   @default("ativa")
-  estrategia   Json?
-  created_at   DateTime @default(now())
+  id                String   @id @default(uuid())
+  user_id           String
+  nome              String
+  descricao         String
+  objetivo          String?
+  publico_alvo      String
+  orcamento         Float
+  plataforma        String
+  status            String   @default("ativa")
+  estrategia        Json?
+  meta_campaign_id  String?
+  meta_adset_id     String?
+  created_at        DateTime @default(now())
 
   user      User       @relation(fields: [user_id], references: [id])
   criativos Criativo[]
@@ -44,6 +46,8 @@ model Criativo {
   campanha_id String
   url_imagem  String
   tipo        String
+  placement   String?
+  meta_ad_id  String?
   created_at  DateTime @default(now())
 
   campanha Campanha  @relation(fields: [campanha_id], references: [id])

@@ -9,6 +9,8 @@ import {
   deletarCampanha,
 } from './campanhas.service';
 import { gerarEstrategia } from './estrategia.service';
+import { publicarCampanhaNoMeta, publicarCriativoNoMeta } from './publicar-meta.service';
+import { gerarInsightsCampanha } from './insights.service';
 
 const criarCampanhaSchema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório').max(200),
@@ -133,6 +135,57 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
       return;
     }
     res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+router.post('/:id/publicar-meta', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const campanha = await publicarCampanhaNoMeta(req.params.id, (req as AuthRequest).userId);
+    res.json(campanha);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'NOT_FOUND') {
+      res.status(404).json({ error: 'Campanha não encontrada' });
+      return;
+    }
+    if (err instanceof Error && err.name === 'FORBIDDEN') {
+      res.status(403).json({ error: 'Acesso negado' });
+      return;
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Erro ao publicar na Meta' });
+  }
+});
+
+router.post('/:id/criativos/:criativoId/publicar-meta', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const criativo = await publicarCriativoNoMeta(req.params.id, req.params.criativoId, (req as AuthRequest).userId);
+    res.json(criativo);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'NOT_FOUND') {
+      res.status(404).json({ error: 'Não encontrado' });
+      return;
+    }
+    if (err instanceof Error && err.name === 'FORBIDDEN') {
+      res.status(403).json({ error: 'Acesso negado' });
+      return;
+    }
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Erro ao publicar criativo na Meta' });
+  }
+});
+
+router.post('/:id/insights', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const insights = await gerarInsightsCampanha(req.params.id, (req as AuthRequest).userId);
+    res.json(insights);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'NOT_FOUND') {
+      res.status(404).json({ error: 'Campanha não encontrada' });
+      return;
+    }
+    if (err instanceof Error && err.name === 'FORBIDDEN') {
+      res.status(403).json({ error: 'Acesso negado' });
+      return;
+    }
+    res.status(500).json({ error: 'Erro ao gerar insights' });
   }
 });
 

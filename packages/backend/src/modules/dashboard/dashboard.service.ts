@@ -124,7 +124,9 @@ export async function buscarDashboard(campanhaId: string, userId: string) {
     } else {
       try {
         const token = await getValidToken(userId, 'meta');
-        resultados['meta'] = await buscarMetricasMeta(integ.account_id, token);
+        // Usar meta_campaign_id se disponível (métricas específicas da campanha), senão usar account_id (conta inteira)
+        const targetId = (campanha as any).meta_campaign_id ?? integ.account_id;
+        resultados['meta'] = await buscarMetricasMeta(targetId, token);
       } catch {
         resultados['meta'] = { erro: 'Erro ao buscar métricas do Meta' };
       }
