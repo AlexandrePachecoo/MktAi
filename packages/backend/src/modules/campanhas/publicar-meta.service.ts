@@ -55,7 +55,7 @@ export async function publicarCampanhaNoMeta(campanhaId: string, userId: string)
       name: campanha.nome,
       objective: metaObjective,
       status: 'PAUSED',
-      daily_budget: Math.round(campanha.orcamento * 100),
+      special_ad_categories: [],
     });
 
     const metaAdSet = await criarAdSetMeta(userId, {
