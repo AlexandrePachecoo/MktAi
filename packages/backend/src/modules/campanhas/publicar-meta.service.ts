@@ -53,7 +53,7 @@ export async function publicarCampanhaNoMeta(campanhaId: string, userId: string)
     const { billing_event, optimization_goal, destination_type } = OPTIMIZATION_MAP[metaObjective] ?? OPTIMIZATION_MAP.OUTCOME_TRAFFIC;
 
     // Reutiliza campanha já criada em tentativa anterior (evita órfãos no Meta)
-    let metaCampanhaId = (campanha as any).meta_campaign_id as string | null;
+    let metaCampanhaId: string = (campanha as any).meta_campaign_id ?? '';
     if (!metaCampanhaId) {
       const metaCampanha = await criarCampanhaMeta(userId, {
         name: campanha.nome,
@@ -61,7 +61,7 @@ export async function publicarCampanhaNoMeta(campanhaId: string, userId: string)
         status: 'PAUSED',
         special_ad_categories: [],
       });
-      metaCampanhaId = metaCampanha.id;
+      metaCampanhaId = String(metaCampanha.id);
       await prisma.campanha.update({
         where: { id: campanhaId },
         data: { meta_campaign_id: metaCampanhaId },
