@@ -131,6 +131,7 @@ export async function criarAdSetMeta(
     daily_budget: number;
     billing_event: string;
     optimization_goal: string;
+    destination_type?: string;
     targeting: Record<string, unknown>;
     status?: string;
     start_time?: string;

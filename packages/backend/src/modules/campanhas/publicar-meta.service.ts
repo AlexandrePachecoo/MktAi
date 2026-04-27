@@ -22,13 +22,13 @@ const OBJETIVO_META: Record<string, string> = {
   apps: 'OUTCOME_APP_PROMOTION',
 };
 
-const OPTIMIZATION_MAP: Record<string, { billing_event: string; optimization_goal: string }> = {
-  OUTCOME_SALES: { billing_event: 'IMPRESSIONS', optimization_goal: 'LINK_CLICKS' },
-  OUTCOME_LEADS: { billing_event: 'IMPRESSIONS', optimization_goal: 'LINK_CLICKS' },
+const OPTIMIZATION_MAP: Record<string, { billing_event: string; optimization_goal: string; destination_type?: string }> = {
+  OUTCOME_SALES: { billing_event: 'IMPRESSIONS', optimization_goal: 'LINK_CLICKS', destination_type: 'WEBSITE' },
+  OUTCOME_LEADS: { billing_event: 'IMPRESSIONS', optimization_goal: 'LINK_CLICKS', destination_type: 'WEBSITE' },
   OUTCOME_AWARENESS: { billing_event: 'IMPRESSIONS', optimization_goal: 'REACH' },
-  OUTCOME_TRAFFIC: { billing_event: 'IMPRESSIONS', optimization_goal: 'LINK_CLICKS' },
+  OUTCOME_TRAFFIC: { billing_event: 'IMPRESSIONS', optimization_goal: 'LINK_CLICKS', destination_type: 'WEBSITE' },
   OUTCOME_ENGAGEMENT: { billing_event: 'IMPRESSIONS', optimization_goal: 'POST_ENGAGEMENT' },
-  OUTCOME_APP_PROMOTION: { billing_event: 'IMPRESSIONS', optimization_goal: 'LINK_CLICKS' },
+  OUTCOME_APP_PROMOTION: { billing_event: 'IMPRESSIONS', optimization_goal: 'LINK_CLICKS', destination_type: 'WEBSITE' },
 };
 
 export async function publicarCampanhaNoMeta(campanhaId: string, userId: string) {
@@ -45,26 +45,36 @@ export async function publicarCampanhaNoMeta(campanhaId: string, userId: string)
       throw err;
     }
 
-    // Já publicada?
-    if ((campanha as any).meta_campaign_id) return campanha;
+    // Já publicada completamente?
+    if ((campanha as any).meta_campaign_id && (campanha as any).meta_adset_id) return campanha;
 
     const objetivo = campanha.objetivo?.toLowerCase() ?? '';
     const metaObjective = OBJETIVO_META[objetivo] ?? 'OUTCOME_TRAFFIC';
-    const { billing_event, optimization_goal } = OPTIMIZATION_MAP[metaObjective] ?? OPTIMIZATION_MAP.OUTCOME_TRAFFIC;
+    const { billing_event, optimization_goal, destination_type } = OPTIMIZATION_MAP[metaObjective] ?? OPTIMIZATION_MAP.OUTCOME_TRAFFIC;
 
-    const metaCampanha = await criarCampanhaMeta(userId, {
-      name: campanha.nome,
-      objective: metaObjective,
-      status: 'PAUSED',
-      special_ad_categories: [],
-    });
+    // Reutiliza campanha já criada em tentativa anterior (evita órfãos no Meta)
+    let metaCampanhaId = (campanha as any).meta_campaign_id as string | null;
+    if (!metaCampanhaId) {
+      const metaCampanha = await criarCampanhaMeta(userId, {
+        name: campanha.nome,
+        objective: metaObjective,
+        status: 'PAUSED',
+        special_ad_categories: [],
+      });
+      metaCampanhaId = metaCampanha.id;
+      await prisma.campanha.update({
+        where: { id: campanhaId },
+        data: { meta_campaign_id: metaCampanhaId },
+      });
+    }
 
     const metaAdSet = await criarAdSetMeta(userId, {
       name: `${campanha.nome} - Ad Set`,
-      campaign_id: metaCampanha.id,
+      campaign_id: metaCampanhaId,
       daily_budget: Math.round(campanha.orcamento * 100),
       billing_event,
       optimization_goal,
+      ...(destination_type ? { destination_type } : {}),
       targeting: { geo_locations: { countries: ['BR'] }, age_min: 18, age_max: 65 },
       status: 'PAUSED',
       is_adset_budget_sharing_enabled: false,
@@ -72,7 +82,7 @@ export async function publicarCampanhaNoMeta(campanhaId: string, userId: string)
 
     return prisma.campanha.update({
       where: { id: campanhaId },
-      data: { meta_campaign_id: metaCampanha.id, meta_adset_id: metaAdSet.id },
+      data: { meta_adset_id: metaAdSet.id },
     });
   } catch (err) {
     console.error('[publicar-meta]', (err as Error).message);
