@@ -68,6 +68,7 @@ export async function criarCampanhaMeta(
     start_time?: string;
     stop_time?: string;
     special_ad_categories?: string[];
+    is_adset_budget_sharing_enabled?: boolean;
   }
 ) {
   const access_token = await getValidToken(userId, 'meta');
@@ -77,6 +78,7 @@ export async function criarCampanhaMeta(
       ...payload,
       status: payload.status ?? 'PAUSED',
       special_ad_categories: payload.special_ad_categories ?? [],
+      is_adset_budget_sharing_enabled: payload.is_adset_budget_sharing_enabled ?? false,
       access_token,
     });
     return data;
@@ -136,7 +138,6 @@ export async function criarAdSetMeta(
     status?: string;
     start_time?: string;
     end_time?: string;
-    is_adset_budget_sharing_enabled?: boolean;
   }
 ) {
   const access_token = await getValidToken(userId, 'meta');
