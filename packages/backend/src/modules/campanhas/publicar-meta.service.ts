@@ -92,13 +92,21 @@ export async function publicarCampanhaNoMeta(campanhaId: string, userId: string)
 
 async function uploadImagemMeta(userId: string, accountId: string, imageUrl: string): Promise<string> {
   const access_token = await getValidToken(userId, 'meta');
-  const { data } = await axios.post(`${GRAPH}/${accountId}/adimages`, {
-    url: imageUrl,
-    access_token,
-  });
-  const hashes = Object.values(data.images ?? {}) as any[];
-  if (!hashes.length) throw new Error('Falha ao fazer upload da imagem para Meta');
-  return hashes[0].hash;
+  try {
+    const { data } = await axios.post(`${GRAPH}/${accountId}/adimages`, {
+      url: imageUrl,
+      access_token,
+    });
+    const hashes = Object.values(data.images ?? {}) as any[];
+    if (!hashes.length) throw new Error('Falha ao fazer upload da imagem para Meta');
+    return hashes[0].hash;
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      const metaErr = err.response?.data?.error;
+      throw new Error(metaErr?.error_user_title ?? metaErr?.message ?? 'Falha ao fazer upload da imagem para Meta');
+    }
+    throw err;
+  }
 }
 
 export async function publicarCriativoNoMeta(campanhaId: string, criativoId: string, userId: string) {
@@ -126,6 +134,8 @@ export async function publicarCriativoNoMeta(campanhaId: string, criativoId: str
     throw err;
   }
 
+  if ((criativo as any).meta_ad_id) return criativo;
+
   const integracao = await prisma.integracao.findUnique({
     where: { user_id_plataforma: { user_id: userId, plataforma: 'meta' } },
   });
@@ -137,15 +147,18 @@ export async function publicarCriativoNoMeta(campanhaId: string, criativoId: str
   const pageId = paginas[0].id;
   const imageHash = await uploadImagemMeta(userId, integracao.account_id, criativo.url_imagem);
 
+  const destino = 'https://www.facebook.com';
+  const message = (campanha.descricao && campanha.descricao.trim()) || campanha.nome;
+
   const metaCriativo = await criarCriativoMeta(userId, {
     name: `${campanha.nome} - Creative`,
     object_story_spec: {
       page_id: pageId,
       link_data: {
         image_hash: imageHash,
-        link: 'https://www.facebook.com',
-        message: campanha.descricao,
-        call_to_action: { type: 'LEARN_MORE' },
+        link: destino,
+        message,
+        call_to_action: { type: 'LEARN_MORE', value: { link: destino } },
       },
     },
   });

@@ -131,18 +131,26 @@ export function CampanhaDetailPage() {
     if (!id || !criativoParaMeta) return;
     setPublicandoMeta(true);
     setErroPublicacao('');
+    let etapa: 'campanha' | 'criativo' = 'campanha';
     try {
-      if (!campanha?.meta_campaign_id) {
+      if (!campanha?.meta_adset_id) {
         await api.post(`/campanhas/${id}/publicar-meta`, {});
         await recarregar();
       }
+      etapa = 'criativo';
       await api.post(`/campanhas/${id}/criativos/${criativoParaMeta}/publicar-meta`, {
         copy_index: copyParaMeta ?? undefined,
       });
       await recarregarCriativos();
       setMostrarModalPublicar(false);
     } catch (err) {
-      setErroPublicacao(err instanceof Error ? err.message : 'Erro ao publicar no Meta');
+      const msg = err instanceof Error ? err.message : 'Erro ao publicar no Meta';
+      const prefixo = etapa === 'criativo'
+        ? 'Campanha publicada, mas falhou ao publicar o criativo: '
+        : 'Falha ao publicar campanha no Meta: ';
+      setErroPublicacao(prefixo + msg);
+      await recarregar();
+      await recarregarCriativos();
     } finally {
       setPublicandoMeta(false);
     }
