@@ -23,11 +23,12 @@ const OBJETIVO_META: Record<string, string> = {
 };
 
 const OPTIMIZATION_MAP: Record<string, { billing_event: string; optimization_goal: string }> = {
-  OUTCOME_SALES: { billing_event: 'IMPRESSIONS', optimization_goal: 'OFFSITE_CONVERSIONS' },
-  OUTCOME_LEADS: { billing_event: 'IMPRESSIONS', optimization_goal: 'LEAD_GENERATION' },
+  OUTCOME_SALES: { billing_event: 'IMPRESSIONS', optimization_goal: 'LINK_CLICKS' },
+  OUTCOME_LEADS: { billing_event: 'IMPRESSIONS', optimization_goal: 'LINK_CLICKS' },
   OUTCOME_AWARENESS: { billing_event: 'IMPRESSIONS', optimization_goal: 'REACH' },
   OUTCOME_TRAFFIC: { billing_event: 'IMPRESSIONS', optimization_goal: 'LINK_CLICKS' },
   OUTCOME_ENGAGEMENT: { billing_event: 'IMPRESSIONS', optimization_goal: 'POST_ENGAGEMENT' },
+  OUTCOME_APP_PROMOTION: { billing_event: 'IMPRESSIONS', optimization_goal: 'LINK_CLICKS' },
 };
 
 export async function publicarCampanhaNoMeta(campanhaId: string, userId: string) {
