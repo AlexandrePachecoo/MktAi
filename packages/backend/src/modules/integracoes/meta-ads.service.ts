@@ -190,11 +190,15 @@ export async function criarCriativoMeta(
 ) {
   const access_token = await getValidToken(userId, 'meta');
   const accountId = await getAccountId(userId);
-  const { data } = await axios.post(`${GRAPH}/${accountId}/adcreatives`, {
-    ...payload,
-    access_token,
-  });
-  return data;
+  try {
+    const { data } = await axios.post(`${GRAPH}/${accountId}/adcreatives`, {
+      ...payload,
+      access_token,
+    });
+    return data;
+  } catch (err) {
+    extractMetaError(err);
+  }
 }
 
 // ─── Anúncios ─────────────────────────────────────────────────────────────────
@@ -225,12 +229,16 @@ export async function criarAnuncioMeta(
 ) {
   const access_token = await getValidToken(userId, 'meta');
   const accountId = await getAccountId(userId);
-  const { data } = await axios.post(`${GRAPH}/${accountId}/ads`, {
-    ...payload,
-    status: payload.status ?? 'PAUSED',
-    access_token,
-  });
-  return data;
+  try {
+    const { data } = await axios.post(`${GRAPH}/${accountId}/ads`, {
+      ...payload,
+      status: payload.status ?? 'PAUSED',
+      access_token,
+    });
+    return data;
+  } catch (err) {
+    extractMetaError(err);
+  }
 }
 
 export async function atualizarAnuncioMeta(
