@@ -134,6 +134,7 @@ export async function criarAdSetMeta(
     status?: string;
     start_time?: string;
     end_time?: string;
+    is_adset_budget_sharing_enabled?: boolean;
   }
 ) {
   const access_token = await getValidToken(userId, 'meta');

@@ -66,6 +66,7 @@ export async function publicarCampanhaNoMeta(campanhaId: string, userId: string)
       optimization_goal,
       targeting: { geo_locations: { countries: ['BR'] }, age_min: 18, age_max: 65 },
       status: 'PAUSED',
+      is_adset_budget_sharing_enabled: false,
     });
 
     return prisma.campanha.update({
