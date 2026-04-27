@@ -81,7 +81,7 @@ export async function criarCheckout(userId: string, planoSlug: string): Promise<
           price: plano.preco,
         },
       ],
-      returnUrl: `${frontendUrl}/assinatura?status=pendente`,
+      returnUrl: `${frontendUrl}/assinar?status=pendente`,
       completionUrl,
       customer: {
         name: user.nome,
@@ -93,10 +93,17 @@ export async function criarCheckout(userId: string, planoSlug: string): Promise<
         Authorization: `Bearer ${process.env.ABACATEPAY_API_KEY}`,
         'Content-Type': 'application/json',
       },
+      timeout: 15000,
     },
   );
 
-  return data.data.url as string;
+  const checkoutUrl = data?.data?.url as string | undefined;
+  if (!checkoutUrl) {
+    console.error('[pagamentos/checkout] AbacatePay response sem URL:', JSON.stringify(data));
+    throw new Error('Não foi possível obter o link de pagamento. Tente novamente.');
+  }
+
+  return checkoutUrl;
 }
 
 interface AbacatePayWebhookPayload {

@@ -19,6 +19,7 @@ router.post('/checkout', authMiddleware as any, async (req: Request, res: Respon
     const url = await criarCheckout((req as AuthRequest).userId, plano);
     res.json({ url });
   } catch (err) {
+    console.error('[pagamentos/checkout] Erro:', err instanceof Error ? err.message : err);
     res.status(400).json({ error: err instanceof Error ? err.message : 'Erro ao criar checkout' });
   }
 });

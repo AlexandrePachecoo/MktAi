@@ -23,6 +23,7 @@ export function usePlanos() {
 
   async function assinar(plano: string): Promise<void> {
     const { url } = await api.post<{ url: string }>('/pagamentos/checkout', { plano });
+    if (!url) throw new Error('Link de pagamento não retornado. Tente novamente.');
     window.location.href = url;
   }
 
