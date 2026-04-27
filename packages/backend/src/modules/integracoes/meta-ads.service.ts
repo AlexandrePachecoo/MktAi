@@ -6,10 +6,10 @@ const GRAPH = 'https://graph.facebook.com/v19.0';
 
 function extractMetaError(err: unknown): never {
   if (axios.isAxiosError(err)) {
-    const metaMsg = err.response?.data?.error?.message;
+    const error = err.response?.data?.error;
     const status = err.response?.status;
-    console.error(`[meta-ads] HTTP ${status}:`, err.response?.data);
-    throw new Error(metaMsg ?? `Meta API error: HTTP ${status}`);
+    console.error(`[meta-ads] HTTP ${status}: code=${error?.code} subcode=${error?.error_subcode} type=${error?.type} msg="${error?.message}" user_title="${error?.error_user_title}"`);
+    throw new Error(error?.message ?? `Meta API error: HTTP ${status}`);
   }
   throw err;
 }
@@ -21,7 +21,8 @@ async function getAccountId(userId: string): Promise<string> {
     where: { user_id_plataforma: { user_id: userId, plataforma: 'meta' } },
   });
   if (!integracao?.account_id) throw new Error('Conta Meta não selecionada');
-  return integracao.account_id;
+  const id = integracao.account_id;
+  return id.startsWith('act_') ? id : `act_${id}`;
 }
 
 // ─── Perfil / Pages ───────────────────────────────────────────────────────────
