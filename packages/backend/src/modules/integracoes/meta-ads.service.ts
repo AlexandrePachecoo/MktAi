@@ -4,6 +4,16 @@ import { prisma } from '../../lib/prisma';
 
 const GRAPH = 'https://graph.facebook.com/v19.0';
 
+function extractMetaError(err: unknown): never {
+  if (axios.isAxiosError(err)) {
+    const metaMsg = err.response?.data?.error?.message;
+    const status = err.response?.status;
+    console.error(`[meta-ads] HTTP ${status}:`, err.response?.data);
+    throw new Error(metaMsg ?? `Meta API error: HTTP ${status}`);
+  }
+  throw err;
+}
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 async function getAccountId(userId: string): Promise<string> {
@@ -61,13 +71,17 @@ export async function criarCampanhaMeta(
 ) {
   const access_token = await getValidToken(userId, 'meta');
   const accountId = await getAccountId(userId);
-  const { data } = await axios.post(`${GRAPH}/${accountId}/campaigns`, {
-    ...payload,
-    status: payload.status ?? 'PAUSED',
-    special_ad_categories: payload.special_ad_categories ?? [],
-    access_token,
-  });
-  return data;
+  try {
+    const { data } = await axios.post(`${GRAPH}/${accountId}/campaigns`, {
+      ...payload,
+      status: payload.status ?? 'PAUSED',
+      special_ad_categories: payload.special_ad_categories ?? [],
+      access_token,
+    });
+    return data;
+  } catch (err) {
+    extractMetaError(err);
+  }
 }
 
 export async function atualizarCampanhaMeta(
@@ -124,12 +138,16 @@ export async function criarAdSetMeta(
 ) {
   const access_token = await getValidToken(userId, 'meta');
   const accountId = await getAccountId(userId);
-  const { data } = await axios.post(`${GRAPH}/${accountId}/adsets`, {
-    ...payload,
-    status: payload.status ?? 'PAUSED',
-    access_token,
-  });
-  return data;
+  try {
+    const { data } = await axios.post(`${GRAPH}/${accountId}/adsets`, {
+      ...payload,
+      status: payload.status ?? 'PAUSED',
+      access_token,
+    });
+    return data;
+  } catch (err) {
+    extractMetaError(err);
+  }
 }
 
 export async function atualizarAdSetMeta(

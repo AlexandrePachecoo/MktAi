@@ -31,46 +31,51 @@ const OPTIMIZATION_MAP: Record<string, { billing_event: string; optimization_goa
 };
 
 export async function publicarCampanhaNoMeta(campanhaId: string, userId: string) {
-  const campanha = await prisma.campanha.findUnique({ where: { id: campanhaId } });
-  if (!campanha) {
-    const err = new Error('NOT_FOUND');
-    err.name = 'NOT_FOUND';
+  try {
+    const campanha = await prisma.campanha.findUnique({ where: { id: campanhaId } });
+    if (!campanha) {
+      const err = new Error('NOT_FOUND');
+      err.name = 'NOT_FOUND';
+      throw err;
+    }
+    if (campanha.user_id !== userId) {
+      const err = new Error('FORBIDDEN');
+      err.name = 'FORBIDDEN';
+      throw err;
+    }
+
+    // Já publicada?
+    if ((campanha as any).meta_campaign_id) return campanha;
+
+    const objetivo = campanha.objetivo?.toLowerCase() ?? '';
+    const metaObjective = OBJETIVO_META[objetivo] ?? 'OUTCOME_TRAFFIC';
+    const { billing_event, optimization_goal } = OPTIMIZATION_MAP[metaObjective] ?? OPTIMIZATION_MAP.OUTCOME_TRAFFIC;
+
+    const metaCampanha = await criarCampanhaMeta(userId, {
+      name: campanha.nome,
+      objective: metaObjective,
+      status: 'PAUSED',
+      daily_budget: Math.round(campanha.orcamento * 100),
+    });
+
+    const metaAdSet = await criarAdSetMeta(userId, {
+      name: `${campanha.nome} - Ad Set`,
+      campaign_id: metaCampanha.id,
+      daily_budget: Math.round(campanha.orcamento * 100),
+      billing_event,
+      optimization_goal,
+      targeting: { geo_locations: { countries: ['BR'] }, age_min: 18, age_max: 65 },
+      status: 'PAUSED',
+    });
+
+    return prisma.campanha.update({
+      where: { id: campanhaId },
+      data: { meta_campaign_id: metaCampanha.id, meta_adset_id: metaAdSet.id },
+    });
+  } catch (err) {
+    console.error('[publicar-meta]', (err as Error).message);
     throw err;
   }
-  if (campanha.user_id !== userId) {
-    const err = new Error('FORBIDDEN');
-    err.name = 'FORBIDDEN';
-    throw err;
-  }
-
-  // Já publicada?
-  if ((campanha as any).meta_campaign_id) return campanha;
-
-  const objetivo = campanha.objetivo?.toLowerCase() ?? '';
-  const metaObjective = OBJETIVO_META[objetivo] ?? 'OUTCOME_TRAFFIC';
-  const { billing_event, optimization_goal } = OPTIMIZATION_MAP[metaObjective] ?? OPTIMIZATION_MAP.OUTCOME_TRAFFIC;
-
-  const metaCampanha = await criarCampanhaMeta(userId, {
-    name: campanha.nome,
-    objective: metaObjective,
-    status: 'PAUSED',
-    daily_budget: Math.round(campanha.orcamento * 100),
-  });
-
-  const metaAdSet = await criarAdSetMeta(userId, {
-    name: `${campanha.nome} - Ad Set`,
-    campaign_id: metaCampanha.id,
-    daily_budget: Math.round(campanha.orcamento * 100),
-    billing_event,
-    optimization_goal,
-    targeting: { geo_locations: { countries: ['BR'] }, age_min: 18, age_max: 65 },
-    status: 'PAUSED',
-  });
-
-  return prisma.campanha.update({
-    where: { id: campanhaId },
-    data: { meta_campaign_id: metaCampanha.id, meta_adset_id: metaAdSet.id },
-  });
 }
 
 async function uploadImagemMeta(userId: string, accountId: string, imageUrl: string): Promise<string> {

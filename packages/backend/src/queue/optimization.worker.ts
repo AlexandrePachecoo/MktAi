@@ -2,6 +2,7 @@ import { Worker, Job } from 'bullmq';
 import { prisma } from '../lib/prisma';
 import OpenAI from 'openai';
 import { getRedisConnection } from '../lib/redis';
+import { enfileirarCampanhasAtivas } from './optimization.scheduler';
 
 const connection = getRedisConnection();
 
@@ -87,8 +88,12 @@ Responda apenas com JSON:
 export const optimizationWorker = new Worker(
   'optimization',
   async (job: Job) => {
-    const { campanhaId } = job.data;
-    await processarCampanha(campanhaId);
+    if (job.name === 'optimize-all') {
+      await enfileirarCampanhasAtivas();
+    } else if (job.name === 'optimize-campaign') {
+      const { campanhaId } = job.data;
+      await processarCampanha(campanhaId);
+    }
   },
   {
     connection,
