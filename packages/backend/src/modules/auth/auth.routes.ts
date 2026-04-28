@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { register, login } from './auth.service';
+import { register, login, updateProfile } from './auth.service';
+import { authMiddleware, AuthRequest } from '../../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -57,6 +58,33 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
     console.error('[login error]', err instanceof Error ? err.message : err);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+const updateProfileSchema = z.object({
+  nome: z.string().min(2, 'Nome deve ter ao menos 2 caracteres').optional(),
+  email: z.string().email('Email inválido').optional(),
+  password: z.string().min(8, 'Senha deve ter ao menos 8 caracteres').optional(),
+});
+
+router.put('/profile', authMiddleware as any, async (req: Request, res: Response): Promise<void> => {
+  const parsed = updateProfileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.errors[0].message });
+    return;
+  }
+
+  const userId = (req as AuthRequest).userId;
+  try {
+    const user = await updateProfile(userId, parsed.data);
+    res.json(user);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'EMAIL_TAKEN') {
+      res.status(400).json({ error: 'Email já está em uso' });
+      return;
+    }
+    console.error('[updateProfile error]', err instanceof Error ? err.message : err);
     res.status(500).json({ error: 'Erro interno' });
   }
 });

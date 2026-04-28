@@ -19,6 +19,35 @@ export async function register(nome: string, email: string, password: string) {
   return user;
 }
 
+export async function updateProfile(
+  userId: string,
+  data: { nome?: string; email?: string; password?: string }
+) {
+  const updateData: { nome?: string; email?: string; hash_pass?: string } = {};
+
+  if (data.nome) updateData.nome = data.nome;
+  if (data.email) {
+    const existing = await prisma.user.findUnique({ where: { email: data.email } });
+    if (existing && existing.id !== userId) {
+      const error = new Error('EMAIL_TAKEN');
+      error.name = 'EMAIL_TAKEN';
+      throw error;
+    }
+    updateData.email = data.email;
+  }
+  if (data.password) {
+    updateData.hash_pass = await bcrypt.hash(data.password, 10);
+  }
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: updateData,
+    select: { id: true, nome: true, email: true, plano: true },
+  });
+
+  return user;
+}
+
 export async function login(email: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {

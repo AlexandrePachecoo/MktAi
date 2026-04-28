@@ -14,6 +14,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (nome: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateProfile: (data: { nome?: string; email?: string; password?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -54,8 +55,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateProfile = useCallback(
+    async (data: { nome?: string; email?: string; password?: string }) => {
+      const updated = await api.put<User>('/auth/profile', data);
+      localStorage.setItem('faro_user', JSON.stringify(updated));
+      setUser(updated);
+    },
+    []
+  );
+
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
