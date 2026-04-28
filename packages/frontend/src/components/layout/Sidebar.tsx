@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Logo } from '@/components/ui';
+import { ProfileModal } from '@/components/profile/ProfileModal';
 
 interface NavItem {
   label: string;
@@ -30,10 +31,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [logoutHover, setLogoutHover] = useState(false);
+  const [profileHover, setProfileHover] = useState(false);
 
   function handleLogout() {
     logout();
     navigate('/login');
+  }
+
+  function handleOpenProfile() {
+    setProfileOpen(true);
+    onClose?.();
   }
 
   function handleNav(path: string) {
@@ -78,7 +87,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       )}
 
       <div className="sidebar-footer" style={styles.footer}>
-        <div style={styles.userInfo}>
+        <button
+          type="button"
+          onClick={handleOpenProfile}
+          onMouseEnter={() => setProfileHover(true)}
+          onMouseLeave={() => setProfileHover(false)}
+          aria-label="Abrir perfil"
+          style={{
+            ...styles.userInfo,
+            ...(profileHover ? styles.userInfoHover : {}),
+          }}
+        >
           <div style={styles.avatar}>
             {user?.nome?.charAt(0).toUpperCase()}
           </div>
@@ -91,11 +110,23 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             <span style={styles.userEmail}>{user?.email}</span>
           </div>
-        </div>
-        <button onClick={handleLogout} style={styles.logoutBtn} title="Sair">
-          ⎋
+        </button>
+        <button
+          type="button"
+          onClick={handleLogout}
+          onMouseEnter={() => setLogoutHover(true)}
+          onMouseLeave={() => setLogoutHover(false)}
+          style={{
+            ...styles.logoutBtn,
+            ...(logoutHover ? styles.logoutBtnHover : {}),
+          }}
+        >
+          <span style={styles.logoutIcon} aria-hidden="true">↩</span>
+          Sair da conta
         </button>
       </div>
+
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </aside>
   );
 }
@@ -152,15 +183,25 @@ const styles: Record<string, React.CSSProperties> = {
     borderTop: '1px solid var(--color-border)',
     paddingTop: '16px',
     display: 'flex',
-    alignItems: 'center',
+    flexDirection: 'column',
     gap: '8px',
   },
   userInfo: {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-    flex: 1,
+    width: '100%',
     minWidth: 0,
+    padding: '8px',
+    border: 'none',
+    background: 'transparent',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'background 0.15s ease',
+  },
+  userInfoHover: {
+    background: 'rgba(26, 18, 8, 0.04)',
   },
   avatar: {
     width: '32px',
@@ -197,13 +238,29 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: 'nowrap',
   },
   logoutBtn: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    width: '100%',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: '1px solid var(--color-border)',
+    background: 'transparent',
     color: 'var(--color-text-muted)',
-    fontSize: '18px',
-    padding: '4px',
-    flexShrink: 0,
+    fontFamily: 'var(--font-ui)',
+    fontSize: '13px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'background 0.15s ease, color 0.15s ease, border-color 0.15s ease',
+  },
+  logoutBtnHover: {
+    color: 'var(--color-ember)',
+    borderColor: 'rgba(232, 93, 38, 0.3)',
+    background: 'rgba(232, 93, 38, 0.06)',
+  },
+  logoutIcon: {
+    fontSize: '15px',
     lineHeight: 1,
   },
   upgradeBtn: {

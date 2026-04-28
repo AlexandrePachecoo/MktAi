@@ -8,11 +8,19 @@ interface User {
   plano: string;
 }
 
+interface UpdateProfileInput {
+  nome?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
 interface AuthContextValue {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (nome: string, email: string, password: string) => Promise<void>;
+  updateProfile: (input: UpdateProfileInput) => Promise<void>;
   logout: () => void;
 }
 
@@ -47,6 +55,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [login]
   );
 
+  const updateProfile = useCallback(async (input: UpdateProfileInput) => {
+    const data = await api.patch<{ user: User }>('/auth/me', input);
+    localStorage.setItem('faro_user', JSON.stringify(data.user));
+    setUser(data.user);
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('faro_token');
     localStorage.removeItem('faro_user');
@@ -55,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, login, register, updateProfile, logout }}>
       {children}
     </AuthContext.Provider>
   );
