@@ -79,9 +79,9 @@ function buildPrompt(
 You are an art director at a top-tier creative agency tasked with producing a stunning social media ad.
 
 REFERENCE IMAGE INSTRUCTION:
-The image provided is the CLIENT'S BRAND LOGO. DO NOT treat it as a scene to edit or a photo to modify.
-Instead, use the canvas to create a completely FRESH, DYNAMIC advertising composition.
-Place the logo cleanly in the bottom-right corner (or a visually balanced corner position) on a neutral, non-competing background patch — preserve the logo exactly as-is, do not distort, recolor, or alter it.
+The image provided is the CLIENT'S BRAND LOGO. DO NOT treat it as a scene to edit or a background to keep.
+Use the canvas to create a completely FRESH, DYNAMIC advertising composition — as if you were given a blank canvas with the logo as brand reference.
+INTEGRATE the logo naturally into the scene: render it as an emblem on a person's chest/uniform, as a patch on their jacket, as a badge or insignia they wear, as branded vehicle/building signage visible in the environment, or as a prominent screen/sign within the scene. The logo must feel PART OF THE SCENE — not pasted on top, not isolated in a corner.
 
 CAMPAIGN BRIEF:
 Brand: ${campanha.nome}
@@ -94,18 +94,18 @@ ${copyBlock}
 ${paletaBlock}
 
 VISUAL DIRECTION — CREATE A BOLD, AGENCY-QUALITY AD:
-1. HERO VISUAL: Dominate 60-70% of the canvas with a powerful, evocative hero image or illustration that tells the product story — a lifestyle scene, product in dramatic use, abstract concept, or bold graphic metaphor. Avoid stock-photo clichés.
-2. ATMOSPHERE: Use rich, immersive backgrounds — deep gradients, cinematic lighting, atmospheric depth, bokeh, dramatic shadows or glows. Make the viewer feel something. NOT flat colors, NOT white backgrounds.
-3. TYPOGRAPHY HIERARCHY: If copy is provided above, render it with intent — a massive bold headline using modern sans-serif or expressive display type, with the body text in a clean, readable weight beneath. Create tension between large and small.
-4. NEGATIVE SPACE: Use deliberate empty space to create breathing room and direct the viewer's eye toward the key message and the CTA.
-5. BRAND LOGO PLACEMENT: Reserve a clean area (bottom-right or bottom-center) where the logo sits on a semi-transparent or solid neutral patch — never float it over a busy background.
+1. HERO VISUAL: Dominate 60-70% of the canvas with a powerful, evocative hero image — a person in action, lifestyle scene, or dramatic product shot. The brand logo appears naturally ON or IN this hero (on their clothing, equipment, signage, etc.).
+2. ATMOSPHERE: Use rich, immersive backgrounds — deep gradients, cinematic lighting, atmospheric depth, bokeh, dramatic shadows or glows. Make the viewer feel something. NOT flat colors, NOT plain white backgrounds.
+3. TYPOGRAPHY HIERARCHY: If copy is provided above, render it with intent — a massive bold headline using modern sans-serif or expressive display type, body text in a clean readable weight beneath. Create tension between large and small.
+4. NEGATIVE SPACE: Use deliberate empty space to guide the viewer's eye toward the key message and CTA.
+5. BRAND INTEGRATION: The logo appears as a natural part of the environment or person — chest emblem, uniform patch, badge, vehicle decal, building sign, or illuminated signage. It should look like it was always there.
 6. COLOR LANGUAGE: ${colorDirective}
-7. COMPOSITION MOVEMENT: Design the layout so the eye enters at the hero visual, travels to the headline, lands on the body/CTA, and exits at the logo. Guide the viewer through the image.
+7. COMPOSITION MOVEMENT: The eye enters at the hero visual, travels to the headline, lands on the body/CTA, and the logo reinforces the brand as part of the scene.
 
 PLATFORM OPTIMIZATION: ${platformLabel}
 ${placementTip}
 
-QUALITY BAR: This must look like a real ad that would win a Cannes Lions shortlist. It should be visually striking enough to stop a thumb while scrolling. NOT corporate clip-art. NOT a logo on a plain background. NOT a flat product photo dump.
+QUALITY BAR: This must look like a real ad that would stop a thumb mid-scroll. The logo must appear organically within the scene, the way a Nike swoosh appears on an athlete's jersey — integrated, not added. NOT a logo floating on a plain background. NOT corporate clip-art.
 ${extraBlock}
 `.trim();
   }
