@@ -6,6 +6,8 @@ interface User {
   nome: string;
   email: string;
   plano: string;
+  cpf?: string;
+  telefone?: string;
 }
 
 interface UpdateProfileInput {

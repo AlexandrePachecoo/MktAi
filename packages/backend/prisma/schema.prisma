@@ -14,6 +14,8 @@ model User {
   email      String   @unique
   hash_pass  String
   plano      String   @default("free")
+  cpf        String?
+  telefone   String?
   admin      Boolean  @default(false)
   created_at DateTime @default(now())
 

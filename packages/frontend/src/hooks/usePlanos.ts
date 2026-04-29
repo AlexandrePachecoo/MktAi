@@ -21,8 +21,8 @@ export function usePlanos() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function assinar(plano: string): Promise<void> {
-    const { url } = await api.post<{ url: string }>('/pagamentos/checkout', { plano });
+  async function assinar(plano: string, cpf: string, telefone: string): Promise<void> {
+    const { url } = await api.post<{ url: string }>('/pagamentos/checkout', { plano, cpf, telefone });
     window.location.href = url;
   }
 

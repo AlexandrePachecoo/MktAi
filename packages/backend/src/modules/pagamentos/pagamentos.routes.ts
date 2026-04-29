@@ -9,14 +9,18 @@ router.get('/planos', (_req, res) => {
 });
 
 router.post('/checkout', authMiddleware as any, async (req: Request, res: Response): Promise<void> => {
-  const { plano } = req.body;
+  const { plano, cpf, telefone } = req.body;
   if (!plano || typeof plano !== 'string') {
     res.status(400).json({ error: 'plano é obrigatório' });
     return;
   }
+  if (!cpf || typeof cpf !== 'string' || !telefone || typeof telefone !== 'string') {
+    res.status(422).json({ error: 'CPF e telefone são obrigatórios para o pagamento' });
+    return;
+  }
 
   try {
-    const url = await criarCheckout((req as AuthRequest).userId, plano);
+    const url = await criarCheckout((req as AuthRequest).userId, plano, cpf, telefone);
     res.json({ url });
   } catch (err) {
     res.status(400).json({ error: err instanceof Error ? err.message : 'Erro ao criar checkout' });
