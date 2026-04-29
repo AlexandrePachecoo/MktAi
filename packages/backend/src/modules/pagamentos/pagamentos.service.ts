@@ -47,8 +47,85 @@ export const PLANOS = [
   },
 ];
 
+type Plano = (typeof PLANOS)[number];
+
+interface UserMin {
+  id: string;
+  nome: string;
+  email: string;
+  cpf: string | null;
+  telefone: string | null;
+}
+
 export function listarPlanos() {
   return PLANOS;
+}
+
+function authHeaders() {
+  return {
+    Authorization: `Bearer ${process.env.ABACATEPAY_API_KEY}`,
+    'Content-Type': 'application/json',
+  };
+}
+
+async function ensureProduct(plano: Plano): Promise<string> {
+  const headers = authHeaders();
+
+  try {
+    const { data } = await axios.get(`${ABACATEPAY_BASE}/products/list`, {
+      params: { externalId: plano.slug, limit: 1 },
+      headers,
+    });
+    const existing = data?.data?.[0];
+    if (existing?.id) return existing.id as string;
+  } catch (_) {
+    // se a busca falhar, segue para criação
+  }
+
+  const { data } = await axios.post(
+    `${ABACATEPAY_BASE}/products/create`,
+    {
+      externalId: plano.slug,
+      name: plano.nome,
+      price: plano.preco,
+      currency: 'BRL',
+    },
+    { headers },
+  );
+  return data.data.id as string;
+}
+
+async function ensureCustomer(user: UserMin): Promise<string> {
+  const headers = authHeaders();
+
+  try {
+    const { data } = await axios.get(`${ABACATEPAY_BASE}/customers/list`, {
+      params: { email: user.email, limit: 1 },
+      headers,
+    });
+    const existing = data?.data?.[0];
+    if (existing?.id) return existing.id as string;
+  } catch (_) {
+    // se a busca falhar, segue para criação
+  }
+
+  const customer: Record<string, string> = {
+    name: user.nome,
+    email: user.email,
+  };
+  if (user.cpf) {
+    customer.taxId = user.cpf.replace(/\D/g, '');
+  }
+  if (user.telefone) {
+    customer.cellphone = `+55${user.telefone.replace(/\D/g, '')}`;
+  }
+
+  const { data } = await axios.post(
+    `${ABACATEPAY_BASE}/customers/create`,
+    customer,
+    { headers },
+  );
+  return data.data.id as string;
 }
 
 export async function criarCheckout(
@@ -71,52 +148,37 @@ export async function criarCheckout(
     ? `${backendUrl}/api/pagamentos/webhook?token=${webhookSecret}`
     : `${backendUrl}/api/pagamentos/webhook`;
 
-  const customer: Record<string, string> = {
-    name: user.nome,
-    email: user.email,
-  };
-  if (user.cpf) {
-    customer.taxId = user.cpf.replace(/\D/g, '');
-  }
-  if (user.telefone) {
-    customer.cellphone = `+55${user.telefone.replace(/\D/g, '')}`;
-  }
+  try {
+    const [productId, customerId] = await Promise.all([
+      ensureProduct(plano),
+      ensureCustomer(user),
+    ]);
 
-  const { data } = await axios.post(
-    `${ABACATEPAY_BASE}/billing/create`,
-    {
-      frequency: 'ONE_TIME',
-      methods: ['PIX'],
-      products: [
-        {
-          externalId: `${userId}:${planoSlug}`,
-          name: plano.nome,
-          quantity: 1,
-          price: plano.preco,
-        },
-      ],
-      returnUrl: `${frontendUrl}/assinar?status=pendente`,
-      completionUrl,
-      customer,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.ABACATEPAY_API_KEY}`,
-        'Content-Type': 'application/json',
+    const { data } = await axios.post(
+      `${ABACATEPAY_BASE}/checkouts/create`,
+      {
+        items: [{ id: productId, quantity: 1 }],
+        methods: ['PIX'],
+        returnUrl: `${frontendUrl}/assinar?status=pendente`,
+        completionUrl,
+        customerId,
+        externalId: `${userId}:${planoSlug}`,
       },
-    },
-  ).catch((err) => {
+      { headers: authHeaders() },
+    );
+
+    return data.data.url as string;
+  } catch (err: any) {
     const detail = err?.response?.data ?? err?.message;
     console.error('[pagamentos] AbacatePay erro:', JSON.stringify(detail));
     throw err;
-  });
-
-  return data.data.url as string;
+  }
 }
 
 interface AbacatePayWebhookPayload {
   event: string;
   data?: {
+    externalId?: string;
     products?: Array<{ externalId?: string }>;
     status?: string;
   };
@@ -125,7 +187,8 @@ interface AbacatePayWebhookPayload {
 export async function processarWebhook(payload: AbacatePayWebhookPayload): Promise<void> {
   if (payload.event !== 'BILLING_PAID') return;
 
-  const externalId = payload.data?.products?.[0]?.externalId;
+  const externalId =
+    payload.data?.externalId ?? payload.data?.products?.[0]?.externalId;
   if (!externalId) return;
 
   const [userId, planoSlug] = externalId.split(':');
