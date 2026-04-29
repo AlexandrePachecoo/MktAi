@@ -37,6 +37,7 @@ function buildPrompt(
   extra?: string,
   paletaCores?: string[],
   placement?: string,
+  hasReferencia?: boolean,
 ): string {
   const copyBlock = copy
     ? `\nAD COPY TO INCLUDE IN THE IMAGE:\nHeadline: "${copy.titulo}"\nBody: "${copy.texto}"`
@@ -62,6 +63,52 @@ function buildPrompt(
       : campanha.plataforma === 'google'
         ? 'Google Display'
         : 'social media feed';
+
+  if (hasReferencia) {
+    const colorDirective =
+      paletaCores && paletaCores.length > 0
+        ? `Use the mandatory palette (${paletaCores.join(', ')}) as the dominant palette across all elements.`
+        : `Pull colors from the logo for brand harmony, then extend with complementary accent tones that feel premium and emotionally resonant.`;
+
+    const placementTip =
+      placement === 'stories' || placement === 'reels'
+        ? `For this Stories/Reels (9:16) format: place the strongest visual in the top two-thirds; reserve the bottom third for headline text and the logo.`
+        : `For this Feed (1:1) format: use a rule-of-thirds or strong center composition, balancing the hero visual with the text zone and logo placement.`;
+
+    return `
+You are an art director at a top-tier creative agency tasked with producing a stunning social media ad.
+
+REFERENCE IMAGE INSTRUCTION:
+The image provided is the CLIENT'S BRAND LOGO. DO NOT treat it as a scene to edit or a photo to modify.
+Instead, use the canvas to create a completely FRESH, DYNAMIC advertising composition.
+Place the logo cleanly in the bottom-right corner (or a visually balanced corner position) on a neutral, non-competing background patch — preserve the logo exactly as-is, do not distort, recolor, or alter it.
+
+CAMPAIGN BRIEF:
+Brand: ${campanha.nome}
+Product/Service: ${campanha.descricao}
+Objective: ${campanha.objetivo || 'conversão'}
+Target Audience: ${campanha.publico_alvo}
+Platform: ${platformLabel}
+Format: ${formatDescription} (${dimensionsText})
+${copyBlock}
+${paletaBlock}
+
+VISUAL DIRECTION — CREATE A BOLD, AGENCY-QUALITY AD:
+1. HERO VISUAL: Dominate 60-70% of the canvas with a powerful, evocative hero image or illustration that tells the product story — a lifestyle scene, product in dramatic use, abstract concept, or bold graphic metaphor. Avoid stock-photo clichés.
+2. ATMOSPHERE: Use rich, immersive backgrounds — deep gradients, cinematic lighting, atmospheric depth, bokeh, dramatic shadows or glows. Make the viewer feel something. NOT flat colors, NOT white backgrounds.
+3. TYPOGRAPHY HIERARCHY: If copy is provided above, render it with intent — a massive bold headline using modern sans-serif or expressive display type, with the body text in a clean, readable weight beneath. Create tension between large and small.
+4. NEGATIVE SPACE: Use deliberate empty space to create breathing room and direct the viewer's eye toward the key message and the CTA.
+5. BRAND LOGO PLACEMENT: Reserve a clean area (bottom-right or bottom-center) where the logo sits on a semi-transparent or solid neutral patch — never float it over a busy background.
+6. COLOR LANGUAGE: ${colorDirective}
+7. COMPOSITION MOVEMENT: Design the layout so the eye enters at the hero visual, travels to the headline, lands on the body/CTA, and exits at the logo. Guide the viewer through the image.
+
+PLATFORM OPTIMIZATION: ${platformLabel}
+${placementTip}
+
+QUALITY BAR: This must look like a real ad that would win a Cannes Lions shortlist. It should be visually striking enough to stop a thumb while scrolling. NOT corporate clip-art. NOT a logo on a plain background. NOT a flat product photo dump.
+${extraBlock}
+`.trim();
+  }
 
   return `
 Create a professional social media ad image (${formatDescription}, ${dimensionsText}).
@@ -138,7 +185,7 @@ export async function gerarCriativoIA(
     options.copyIndex != null ? estrategia?.copies?.[options.copyIndex] : undefined;
 
   const openai = getOpenAI();
-  const prompt = buildPrompt(campanha, copy, options.extra, options.paletaCores, options.placement);
+  const prompt = buildPrompt(campanha, copy, options.extra, options.paletaCores, options.placement, !!options.referenciaUrl);
 
   // Determinar tamanho da imagem baseado no placement
   const placementInfo = options.placement && PLACEMENT_SIZES[options.placement];
