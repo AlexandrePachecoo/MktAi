@@ -1,6 +1,7 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { register, login } from './auth.service';
+import { register, login, updateProfile } from './auth.service';
+import { authMiddleware, AuthRequest } from '../../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -60,5 +61,53 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ error: 'Erro interno' });
   }
 });
+
+const updateProfileSchema = z
+  .object({
+    nome: z.string().min(2, 'Nome deve ter ao menos 2 caracteres').optional(),
+    email: z.string().email('Email inválido').optional(),
+    currentPassword: z.string().min(1).optional(),
+    newPassword: z
+      .string()
+      .min(8, 'Nova senha deve ter ao menos 8 caracteres')
+      .optional(),
+  })
+  .refine((d) => !d.newPassword || (d.currentPassword && d.currentPassword.length > 0), {
+    message: 'Senha atual é obrigatória para trocar a senha',
+    path: ['currentPassword'],
+  });
+
+router.patch(
+  '/me',
+  (req: Request, res: Response, next: NextFunction) =>
+    authMiddleware(req as AuthRequest, res, next),
+  async (req: Request, res: Response): Promise<void> => {
+    const parsed = updateProfileSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.errors[0].message });
+      return;
+    }
+
+    try {
+      const user = await updateProfile((req as AuthRequest).userId, parsed.data);
+      res.status(200).json({ user });
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'EMAIL_TAKEN') {
+        res.status(400).json({ error: 'Email já cadastrado' });
+        return;
+      }
+      if (err instanceof Error && err.name === 'INVALID_PASSWORD') {
+        res.status(401).json({ error: 'Senha atual inválida' });
+        return;
+      }
+      if (err instanceof Error && err.name === 'USER_NOT_FOUND') {
+        res.status(404).json({ error: 'Usuário não encontrado' });
+        return;
+      }
+      console.error('[updateProfile error]', err instanceof Error ? err.message : err);
+      res.status(500).json({ error: 'Erro interno' });
+    }
+  }
+);
 
 export default router;
