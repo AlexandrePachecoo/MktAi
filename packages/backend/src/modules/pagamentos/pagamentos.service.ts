@@ -54,27 +54,14 @@ export function listarPlanos() {
 export async function criarCheckout(
   userId: string,
   planoSlug: string,
-  cpf: string,
-  telefone: string,
 ): Promise<string> {
   const plano = PLANOS.find((p) => p.slug === planoSlug);
   if (!plano || plano.slug === 'free') {
     throw new Error('Plano inválido para checkout');
   }
 
-  if (!cpf || !telefone) {
-    throw new Error('CPF e telefone são obrigatórios para o pagamento');
-  }
-
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new Error('Usuário não encontrado');
-
-  if (!user.cpf || !user.telefone) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { cpf, telefone },
-    });
-  }
 
   const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:3000';
   const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
@@ -83,6 +70,17 @@ export async function criarCheckout(
   const completionUrl = webhookSecret
     ? `${backendUrl}/api/pagamentos/webhook?token=${webhookSecret}`
     : `${backendUrl}/api/pagamentos/webhook`;
+
+  const customer: Record<string, string> = {
+    name: user.nome,
+    email: user.email,
+  };
+  if (user.cpf) {
+    customer.taxId = user.cpf.replace(/\D/g, '');
+  }
+  if (user.telefone) {
+    customer.cellphone = `+55${user.telefone.replace(/\D/g, '')}`;
+  }
 
   const { data } = await axios.post(
     `${ABACATEPAY_BASE}/billing/create`,
@@ -99,12 +97,7 @@ export async function criarCheckout(
       ],
       returnUrl: `${frontendUrl}/assinar?status=pendente`,
       completionUrl,
-      customer: {
-        name: user.nome,
-        email: user.email,
-        taxId: cpf.replace(/\D/g, ''),
-        cellphone: `+55${telefone.replace(/\D/g, '')}`,
-      },
+      customer,
     },
     {
       headers: {

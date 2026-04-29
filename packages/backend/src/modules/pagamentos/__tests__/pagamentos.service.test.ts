@@ -44,28 +44,23 @@ describe('listarPlanos', () => {
 
 describe('criarCheckout', () => {
   it('lança erro quando plano é inválido', async () => {
-    await expect(criarCheckout('user-1', 'inexistente', '123.456.789-09', '(11) 99999-9999')).rejects.toThrow('Plano inválido');
+    await expect(criarCheckout('user-1', 'inexistente')).rejects.toThrow('Plano inválido');
   });
 
   it('lança erro quando tenta checkout do plano free', async () => {
-    await expect(criarCheckout('user-1', 'free', '123.456.789-09', '(11) 99999-9999')).rejects.toThrow('Plano inválido');
-  });
-
-  it('lança erro quando CPF ou telefone não são fornecidos', async () => {
-    await expect(criarCheckout('user-1', 'basico', '', '(11) 99999-9999')).rejects.toThrow('CPF e telefone são obrigatórios');
-    await expect(criarCheckout('user-1', 'basico', '123.456.789-09', '')).rejects.toThrow('CPF e telefone são obrigatórios');
+    await expect(criarCheckout('user-1', 'free')).rejects.toThrow('Plano inválido');
   });
 
   it('lança erro quando usuário não existe', async () => {
     mockFindUnique.mockResolvedValue(null);
-    await expect(criarCheckout('user-1', 'basico', '123.456.789-09', '(11) 99999-9999')).rejects.toThrow('Usuário não encontrado');
+    await expect(criarCheckout('user-1', 'basico')).rejects.toThrow('Usuário não encontrado');
   });
 
-  it('cria checkout no AbacatePay e retorna URL', async () => {
+  it('cria checkout no AbacatePay e retorna URL sem CPF/telefone quando o usuário não os tem', async () => {
     mockFindUnique.mockResolvedValue({ id: 'user-1', nome: 'João', email: 'joao@test.com', cpf: null, telefone: null });
     mockPost.mockResolvedValue({ data: { data: { url: 'https://abacatepay.com/checkout/abc' } } });
 
-    const url = await criarCheckout('user-1', 'basico', '123.456.789-09', '(11) 99999-9999');
+    const url = await criarCheckout('user-1', 'basico');
 
     expect(url).toBe('https://abacatepay.com/checkout/abc');
     expect(mockPost).toHaveBeenCalledWith(
@@ -80,7 +75,7 @@ describe('criarCheckout', () => {
             price: 4890,
           }),
         ],
-        customer: { name: 'João', email: 'joao@test.com', taxId: '12345678909', cellphone: '+5511999999999' },
+        customer: { name: 'João', email: 'joao@test.com' },
       }),
       expect.objectContaining({
         headers: expect.objectContaining({
@@ -90,12 +85,33 @@ describe('criarCheckout', () => {
     );
   });
 
+  it('inclui CPF e telefone do usuário no customer quando já estão salvos', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: 'user-1',
+      nome: 'João',
+      email: 'joao@test.com',
+      cpf: '123.456.789-09',
+      telefone: '(11) 99999-9999',
+    });
+    mockPost.mockResolvedValue({ data: { data: { url: 'https://abacatepay.com/checkout/abc' } } });
+
+    await criarCheckout('user-1', 'basico');
+
+    const payload = mockPost.mock.calls[0][1];
+    expect(payload.customer).toEqual({
+      name: 'João',
+      email: 'joao@test.com',
+      taxId: '12345678909',
+      cellphone: '+5511999999999',
+    });
+  });
+
   it('inclui token do webhook no completionUrl quando configurado', async () => {
     process.env.ABACATEPAY_WEBHOOK_SECRET = 'wh-secret';
     mockFindUnique.mockResolvedValue({ id: 'user-1', nome: 'João', email: 'joao@test.com', cpf: null, telefone: null });
     mockPost.mockResolvedValue({ data: { data: { url: 'https://abacatepay.com/checkout/abc' } } });
 
-    await criarCheckout('user-1', 'pro', '123.456.789-09', '(11) 99999-9999');
+    await criarCheckout('user-1', 'pro');
 
     const payload = mockPost.mock.calls[0][1];
     expect(payload.completionUrl).toBe('http://backend.test/api/pagamentos/webhook?token=wh-secret');
