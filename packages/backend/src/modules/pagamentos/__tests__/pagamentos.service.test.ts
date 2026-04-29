@@ -64,7 +64,7 @@ describe('criarCheckout', () => {
 
     expect(url).toBe('https://abacatepay.com/checkout/abc');
     expect(mockPost).toHaveBeenCalledWith(
-      'https://api.abacatepay.com/v1/billing/create',
+      'https://api.abacatepay.com/v2/billing/create',
       expect.objectContaining({
         frequency: 'ONE_TIME',
         methods: ['PIX'],

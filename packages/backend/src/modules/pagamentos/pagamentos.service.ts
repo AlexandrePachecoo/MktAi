@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { prisma } from '../../lib/prisma';
 
-const ABACATEPAY_BASE = 'https://api.abacatepay.com/v1';
+const ABACATEPAY_BASE = 'https://api.abacatepay.com/v2';
 
 export const PLANOS = [
   {
