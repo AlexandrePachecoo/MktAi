@@ -103,7 +103,7 @@ export async function criarCheckout(
         name: user.nome,
         email: user.email,
         taxId: cpf.replace(/\D/g, ''),
-        cellphone: telefone.replace(/\D/g, ''),
+        cellphone: `+55${telefone.replace(/\D/g, '')}`,
       },
     },
     {
@@ -112,7 +112,11 @@ export async function criarCheckout(
         'Content-Type': 'application/json',
       },
     },
-  );
+  ).catch((err) => {
+    const detail = err?.response?.data ?? err?.message;
+    console.error('[pagamentos] AbacatePay erro:', JSON.stringify(detail));
+    throw err;
+  });
 
   return data.data.url as string;
 }
