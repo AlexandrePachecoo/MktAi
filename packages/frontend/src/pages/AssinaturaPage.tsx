@@ -1,23 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlanos } from '@/hooks/usePlanos';
-
-function formatCpf(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
-  return digits
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-}
-
-function formatTelefone(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
-  if (digits.length <= 10) {
-    return digits.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').trim().replace(/-$/, '');
-  }
-  return digits.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').trim().replace(/-$/, '');
-}
 
 export function AssinaturaPage() {
   const { user } = useAuth();
@@ -25,36 +9,15 @@ export function AssinaturaPage() {
   const [assinando, setAssinando] = useState<string | null>(null);
   const [erroCheckout, setErroCheckout] = useState('');
 
-  const [cpf, setCpf] = useState(user?.cpf ?? '');
-  const [telefone, setTelefone] = useState(user?.telefone ?? '');
-  const [pendingSlug, setPendingSlug] = useState<string | null>(null);
-
-  const precisaDados = !cpf || cpf.replace(/\D/g, '').length < 11 || !telefone || telefone.replace(/\D/g, '').length < 10;
-
-  async function executarAssinar(slug: string, cpfVal: string, telefoneVal: string) {
+  async function handleAssinar(slug: string) {
     setAssinando(slug);
     setErroCheckout('');
     try {
-      await assinar(slug, cpfVal, telefoneVal);
+      await assinar(slug);
     } catch (err) {
       setErroCheckout(err instanceof Error ? err.message : 'Erro ao iniciar pagamento');
       setAssinando(null);
     }
-  }
-
-  async function handleAssinar(slug: string) {
-    if (precisaDados) {
-      setPendingSlug(slug);
-      return;
-    }
-    await executarAssinar(slug, cpf, telefone);
-  }
-
-  async function handleConfirmarDados(e: React.FormEvent) {
-    e.preventDefault();
-    if (!pendingSlug) return;
-    await executarAssinar(pendingSlug, cpf, telefone);
-    setPendingSlug(null);
   }
 
   const planoAtual = user?.plano ?? 'free';
@@ -79,84 +42,6 @@ export function AssinaturaPage() {
           <div style={{ background: '#fee2e2', color: '#991b1b', padding: '12px 16px', borderRadius: 8, marginBottom: 24 }}>
             {erroCheckout}
           </div>
-        )}
-
-        {pendingSlug && (
-          <form
-            onSubmit={handleConfirmarDados}
-            style={{
-              background: 'var(--color-bg-card)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-card)',
-              padding: '24px',
-              marginBottom: 32,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
-            }}
-          >
-            <p style={{ fontWeight: 600, color: 'var(--color-text-primary)', margin: 0, fontSize: 15 }}>
-              Para continuar, informe seus dados de pagamento:
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>CPF</label>
-                <input
-                  type="text"
-                  placeholder="000.000.000-00"
-                  value={cpf}
-                  onChange={(e) => setCpf(formatCpf(e.target.value))}
-                  required
-                  style={inputStyle}
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>Telefone (com DDD)</label>
-                <input
-                  type="text"
-                  placeholder="(11) 99999-9999"
-                  value={telefone}
-                  onChange={(e) => setTelefone(formatTelefone(e.target.value))}
-                  required
-                  style={inputStyle}
-                />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button
-                type="submit"
-                disabled={assinando !== null}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: 'var(--radius-btn)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: 'var(--color-ember)',
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: 14,
-                }}
-              >
-                {assinando ? 'Redirecionando...' : 'Continuar para pagamento'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setPendingSlug(null)}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: 'var(--radius-btn)',
-                  border: '1px solid var(--color-border)',
-                  cursor: 'pointer',
-                  background: 'transparent',
-                  color: 'var(--color-text-muted)',
-                  fontWeight: 600,
-                  fontSize: 14,
-                }}
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
         )}
 
         {loading ? (
@@ -280,14 +165,3 @@ export function AssinaturaPage() {
     </AppLayout>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  padding: '10px 12px',
-  borderRadius: 8,
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
-  color: 'var(--color-text-primary)',
-  fontSize: 14,
-  width: '100%',
-  boxSizing: 'border-box',
-};

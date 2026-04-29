@@ -48,27 +48,17 @@ describe('POST /api/pagamentos/checkout', () => {
     expect(res.body.error).toMatch(/plano/i);
   });
 
-  it('retorna 422 quando CPF ou telefone não são informados', async () => {
-    const res = await request(app)
-      .post('/api/pagamentos/checkout')
-      .set('Authorization', `Bearer ${makeToken('user-1')}`)
-      .send({ plano: 'pro' });
-
-    expect(res.status).toBe(422);
-    expect(res.body.error).toMatch(/CPF/i);
-  });
-
   it('cria checkout e retorna URL', async () => {
     mocked.criarCheckout.mockResolvedValue('https://abacatepay.com/checkout/xyz');
 
     const res = await request(app)
       .post('/api/pagamentos/checkout')
       .set('Authorization', `Bearer ${makeToken('user-1')}`)
-      .send({ plano: 'pro', cpf: '123.456.789-09', telefone: '(11) 99999-9999' });
+      .send({ plano: 'pro' });
 
     expect(res.status).toBe(200);
     expect(res.body.url).toBe('https://abacatepay.com/checkout/xyz');
-    expect(mocked.criarCheckout).toHaveBeenCalledWith('user-1', 'pro', '123.456.789-09', '(11) 99999-9999');
+    expect(mocked.criarCheckout).toHaveBeenCalledWith('user-1', 'pro');
   });
 
   it('retorna 400 quando service lança erro', async () => {
@@ -77,7 +67,7 @@ describe('POST /api/pagamentos/checkout', () => {
     const res = await request(app)
       .post('/api/pagamentos/checkout')
       .set('Authorization', `Bearer ${makeToken('user-1')}`)
-      .send({ plano: 'inexistente', cpf: '123.456.789-09', telefone: '(11) 99999-9999' });
+      .send({ plano: 'inexistente' });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('Plano inválido');
