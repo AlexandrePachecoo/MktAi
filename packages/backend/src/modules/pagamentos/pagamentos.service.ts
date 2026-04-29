@@ -85,7 +85,7 @@ export async function criarCheckout(
   const { data } = await axios.post(
     `${ABACATEPAY_BASE}/billing/create`,
     {
-      frequency: 'MONTHLY',
+      frequency: 'ONE_TIME',
       methods: ['PIX'],
       products: [
         {

@@ -66,7 +66,7 @@ describe('criarCheckout', () => {
     expect(mockPost).toHaveBeenCalledWith(
       'https://api.abacatepay.com/v1/billing/create',
       expect.objectContaining({
-        frequency: 'MONTHLY',
+        frequency: 'ONE_TIME',
         methods: ['PIX'],
         products: [
           expect.objectContaining({
