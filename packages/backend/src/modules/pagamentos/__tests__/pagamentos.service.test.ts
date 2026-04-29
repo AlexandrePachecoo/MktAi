@@ -80,7 +80,7 @@ describe('criarCheckout', () => {
             price: 4890,
           }),
         ],
-        customer: { name: 'João', email: 'joao@test.com', taxId: '12345678909', cellphone: '11999999999' },
+        customer: { name: 'João', email: 'joao@test.com', taxId: '12345678909', cellphone: '+5511999999999' },
       }),
       expect.objectContaining({
         headers: expect.objectContaining({
