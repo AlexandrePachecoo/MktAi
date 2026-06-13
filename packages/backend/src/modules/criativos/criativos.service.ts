@@ -20,9 +20,12 @@ interface Estrategia {
 
 const PLACEMENT_SIZES: Record<string, { width: string; height: string; description: string }> = {
   feed_instagram: { width: '1024', height: '1024', description: 'Instagram feed (square 1:1)' },
+  carrossel_instagram: { width: '1024', height: '1024', description: 'Instagram carousel (square 1:1)' },
   stories: { width: '1024', height: '1792', description: 'Stories (portrait 9:16)' },
   reels: { width: '1024', height: '1792', description: 'Reels (portrait 9:16)' },
+  tiktok: { width: '1024', height: '1792', description: 'TikTok (portrait 9:16)' },
   feed_facebook: { width: '1024', height: '1024', description: 'Facebook feed (square 1:1)' },
+  youtube: { width: '1792', height: '1024', description: 'YouTube / landscape (16:9)' },
 };
 
 function buildPrompt(
@@ -70,10 +73,13 @@ function buildPrompt(
         ? `Use the mandatory palette (${paletaCores.join(', ')}) as the dominant palette across all elements.`
         : `Pull colors from the logo for brand harmony, then extend with complementary accent tones that feel premium and emotionally resonant.`;
 
-    const placementTip =
-      placement === 'stories' || placement === 'reels'
-        ? `For this Stories/Reels (9:16) format: place the strongest visual in the top two-thirds; reserve the bottom third for headline text and the logo.`
-        : `For this Feed (1:1) format: use a rule-of-thirds or strong center composition, balancing the hero visual with the text zone and logo placement.`;
+    const isPortrait = placementInfo && Number(placementInfo.height) > Number(placementInfo.width);
+    const isLandscape = placementInfo && Number(placementInfo.width) > Number(placementInfo.height);
+    const placementTip = isPortrait
+      ? `For this vertical (9:16) format (${formatDescription}): place the strongest visual in the top two-thirds; reserve the bottom third for headline text and the logo. Keep key elements away from the very top and bottom edges where platform UI overlays appear.`
+      : isLandscape
+        ? `For this landscape (16:9) format (${formatDescription}): use a wide cinematic composition with the hero visual on one side and the text/logo zone balanced on the other.`
+        : `For this square (1:1) format (${formatDescription}): use a rule-of-thirds or strong center composition, balancing the hero visual with the text zone and logo placement.`;
 
     return `
 You are an art director at a top-tier creative agency tasked with producing a stunning social media ad.
@@ -196,13 +202,22 @@ export async function gerarCriativoIA(
   let b64: string | undefined;
 
   if (options.referenciaUrl) {
+    // gpt-image-1 (edit) usa tamanhos próprios: 1024x1024, 1024x1536, 1536x1024.
+    // Mapeamos a orientação do placement para o tamanho compatível mais próximo.
+    const editSize: '1024x1024' | '1024x1536' | '1536x1024' = placementInfo
+      ? Number(placementInfo.height) > Number(placementInfo.width)
+        ? '1024x1536'
+        : Number(placementInfo.width) > Number(placementInfo.height)
+          ? '1536x1024'
+          : '1024x1024'
+      : '1024x1024';
     const refBuffer = await fetchImageBuffer(options.referenciaUrl);
     const refFile = await toFile(refBuffer, 'referencia.png', { type: 'image/png' });
     const editRes = await openai.images.edit({
       model: 'gpt-image-1',
       image: refFile,
       prompt,
-      size: '1024x1024',
+      size: editSize,
       quality: 'high',
       n: 1,
     });

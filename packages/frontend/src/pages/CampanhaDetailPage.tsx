@@ -77,6 +77,17 @@ const PALETAS_PREDEFINIDAS = [
   { id: 'neutro',   nome: 'Neutro',   cores: ['#1C1917', '#78716C', '#F5F5F4'] },
 ];
 
+// Formatos / lugares de publicação. `ratio` é só para o preview visual do seletor.
+const FORMATOS = [
+  { id: 'feed_instagram',      nome: 'Feed Instagram',    dimensao: '1:1',  ratio: 1,      icone: '📷' },
+  { id: 'carrossel_instagram', nome: 'Carrossel Insta',   dimensao: '1:1',  ratio: 1,      icone: '🎠' },
+  { id: 'stories',             nome: 'Stories',           dimensao: '9:16', ratio: 9 / 16, icone: '📱' },
+  { id: 'reels',               nome: 'Reels',             dimensao: '9:16', ratio: 9 / 16, icone: '🎬' },
+  { id: 'tiktok',              nome: 'TikTok',            dimensao: '9:16', ratio: 9 / 16, icone: '🎵' },
+  { id: 'feed_facebook',       nome: 'Feed Facebook',     dimensao: '1:1',  ratio: 1,      icone: '👍' },
+  { id: 'youtube',             nome: 'YouTube',           dimensao: '16:9', ratio: 16 / 9, icone: '▶️' },
+];
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export function CampanhaDetailPage() {
@@ -107,6 +118,7 @@ export function CampanhaDetailPage() {
   const [copyIndexSelecionada, setCopyIndexSelecionada] = useState<number | null>(null);
   const [gerandoCriativo, setGerandoCriativo] = useState(false);
   const [erroGerarIA, setErroGerarIA] = useState('');
+  const [formatoSelecionado, setFormatoSelecionado] = useState<string>('feed_instagram');
   const [paletaOpcao, setPaletaOpcao] = useState<string>('nenhuma');
   const [corCustom1, setCorCustom1] = useState('#e85d26');
   const [corCustom2, setCorCustom2] = useState('#f4a261');
@@ -236,12 +248,14 @@ export function CampanhaDetailPage() {
         extra: extraIA.trim() || undefined,
         paleta_cores: paletaCores,
         referencia_url: imagemRefUrl ?? undefined,
+        placement: formatoSelecionado,
       });
       await recarregarCriativos();
       setMostrarGerarIA(false);
       setExtraIA('');
       setCopyIndexSelecionada(null);
       setPaletaOpcao('nenhuma');
+      setFormatoSelecionado('feed_instagram');
       setImagemRefUrl(null);
     } catch (err) {
       setErroGerarIA(err instanceof Error ? err.message : 'Erro ao gerar criativo');
@@ -559,6 +573,39 @@ export function CampanhaDetailPage() {
 
         {mostrarGerarIA && (
           <div style={styles.gerarIABox}>
+            {/* Formato / lugar */}
+            <div style={{ marginBottom: '16px' }}>
+              <p style={styles.gerarIALabel}>Formato / lugar:</p>
+              <div style={styles.formatoGrid}>
+                {FORMATOS.map((f) => {
+                  const ativo = formatoSelecionado === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      style={{ ...styles.formatoBtn, ...(ativo ? styles.formatoBtnAtivo : {}) }}
+                      onClick={() => setFormatoSelecionado(f.id)}
+                      type="button"
+                      disabled={gerandoCriativo}
+                      title={`${f.nome} (${f.dimensao})`}
+                    >
+                      <div style={styles.formatoPreviewWrap}>
+                        <span
+                          style={{
+                            ...styles.formatoPreview,
+                            width: f.ratio >= 1 ? '26px' : `${Math.round(26 * f.ratio)}px`,
+                            height: f.ratio >= 1 ? `${Math.round(26 / f.ratio)}px` : '26px',
+                          }}
+                        >
+                          {f.icone}
+                        </span>
+                      </div>
+                      <span style={styles.formatoNome}>{f.nome}</span>
+                      <span style={styles.formatoDim}>{f.dimensao}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             {(() => {
               const copies = (campanha?.estrategia as Estrategia | null)?.copies ?? [];
               return copies.length > 0 ? (
@@ -1941,6 +1988,58 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   // Color Palette
+  formatoGrid: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: '8px',
+    marginTop: '4px',
+  },
+  formatoBtn: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: '4px',
+    padding: '8px 10px',
+    width: '78px',
+    border: '1px solid var(--color-border)',
+    borderRadius: '8px',
+    background: 'var(--color-bg-card)',
+    cursor: 'pointer',
+  },
+  formatoBtnAtivo: {
+    borderColor: 'var(--color-ember)',
+    boxShadow: '0 0 0 2px rgba(232,93,38,0.2)',
+  },
+  formatoPreviewWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '30px',
+  },
+  formatoPreview: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '3px',
+    background: 'var(--color-bg)',
+    border: '1px solid var(--color-border)',
+    fontSize: '12px',
+    flexShrink: 0,
+  },
+  formatoNome: {
+    fontSize: '11px',
+    fontWeight: 500,
+    color: 'var(--color-text-primary)',
+    fontFamily: 'var(--font-ui)',
+    textAlign: 'center' as const,
+    lineHeight: 1.2,
+  },
+  formatoDim: {
+    fontSize: '10px',
+    color: 'var(--color-text-muted)',
+    fontFamily: 'var(--font-ui)',
+  },
   paletaGrid: {
     display: 'flex',
     flexWrap: 'wrap' as const,
